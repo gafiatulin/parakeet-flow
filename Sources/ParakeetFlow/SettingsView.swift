@@ -38,6 +38,87 @@ struct GeneralSettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
+            Section("Transcription Engine") {
+                Picker("ASR Backend", selection: $appState.asrBackend) {
+                    ForEach(AsrBackend.allCases, id: \.self) { backend in
+                        Text(backend.label).tag(backend)
+                    }
+                }
+                .onChange(of: appState.asrBackend) { _, _ in
+                    orchestrator?.checkModelStatus()
+                }
+
+                if appState.asrBackend.needsDownload {
+                    HStack {
+                        switch appState.modelStatusByBackend[appState.asrBackend] ?? .notDownloaded {
+                        case .ready:
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                            Text("Model ready")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Button("Delete", role: .destructive) {
+                                orchestrator?.deleteModel()
+                            }
+                            .font(.caption)
+                        case .notDownloaded:
+                            Image(systemName: "arrow.down.circle")
+                                .foregroundStyle(.orange)
+                            Text("Model not downloaded")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Button("Download") {
+                                orchestrator?.downloadModel()
+                            }
+                        case .downloading(let progress):
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Text("Downloading model...")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    Spacer()
+                                    Text("\(Int(progress * 100))%")
+                                        .font(.caption.monospacedDigit())
+                                        .foregroundStyle(.secondary)
+                                    Button("Cancel") {
+                                        orchestrator?.cancelDownload()
+                                    }
+                                    .font(.caption)
+                                }
+                                ProgressView(value: progress)
+                            }
+                        case .error(let message):
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.red)
+                            Text(message)
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                                .lineLimit(2)
+                            Spacer()
+                            Button("Retry") {
+                                orchestrator?.downloadModel()
+                            }
+                        case .notNeeded:
+                            EmptyView()
+                        }
+                    }
+                }
+
+                HStack {
+                    Button("Show in Finder") {
+                        orchestrator?.revealModelCache()
+                    }
+                    .font(.caption)
+                    Spacer()
+                    Button("Clear All Models", role: .destructive) {
+                        orchestrator?.deleteAllModels()
+                    }
+                    .font(.caption)
+                }
+            }
+
             Section("Transcription") {
                 Toggle("Remove filler words", isOn: $appState.isFillerRemovalEnabled)
                 Text("Removes um, uh, like, you know, etc. before LLM cleanup")
@@ -72,6 +153,7 @@ struct GeneralSettingsView: View {
         }
         .formStyle(.grouped)
         .padding()
+        .onAppear { orchestrator?.checkModelStatus() }
     }
 }
 

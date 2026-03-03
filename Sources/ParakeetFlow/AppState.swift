@@ -92,6 +92,39 @@ enum WaveformColor: String, CaseIterable {
     }
 }
 
+enum AsrBackend: String, CaseIterable {
+    case apple
+    case parakeetV2
+    case parakeet
+    case qwen3Asr
+    case qwen3AsrInt8
+
+    var label: String {
+        switch self {
+        case .apple: return "Apple (Streaming)"
+        case .parakeetV2: return "Parakeet TDT v2 (Batch, EN)"
+        case .parakeet: return "Parakeet TDT v3 (Batch)"
+        case .qwen3Asr: return "Qwen3 ASR (Batch)"
+        case .qwen3AsrInt8: return "Qwen3 ASR Int8 (Batch)"
+        }
+    }
+
+    var needsDownload: Bool {
+        switch self {
+        case .apple: return false
+        case .parakeetV2, .parakeet, .qwen3Asr, .qwen3AsrInt8: return true
+        }
+    }
+}
+
+enum ModelStatus: Equatable {
+    case notNeeded
+    case ready
+    case notDownloaded
+    case downloading(progress: Double)
+    case error(String)
+}
+
 enum AppPhase: String {
     case idle
     case recording
@@ -104,6 +137,7 @@ enum AppPhase: String {
 @Observable
 final class AppState {
     var phase: AppPhase = .idle
+    var modelStatusByBackend: [AsrBackend: ModelStatus] = [:]
     var partialTranscription: String?
     var lastTranscription: String?
     var lastCleanedText: String?
@@ -128,6 +162,9 @@ final class AppState {
     var hotkeyChoice: HotkeyChoice {
         didSet { UserDefaults.standard.set(hotkeyChoice.rawValue, forKey: "hotkeyChoice") }
     }
+    var asrBackend: AsrBackend {
+        didSet { UserDefaults.standard.set(asrBackend.rawValue, forKey: "asrBackend") }
+    }
 
     init() {
         let defaults = UserDefaults.standard
@@ -139,6 +176,7 @@ final class AppState {
             "isRecordingOverlayEnabled": false,
             "waveformColor": WaveformColor.parakeet.rawValue,
             "hotkeyChoice": HotkeyChoice.option.rawValue,
+            "asrBackend": AsrBackend.apple.rawValue,
         ])
         self.isLLMEnabled = defaults.bool(forKey: "isLLMEnabled")
         self.isFillerRemovalEnabled = defaults.bool(forKey: "isFillerRemovalEnabled")
@@ -146,6 +184,7 @@ final class AppState {
         self.isRecordingOverlayEnabled = defaults.bool(forKey: "isRecordingOverlayEnabled")
         self.waveformColor = WaveformColor(rawValue: defaults.string(forKey: "waveformColor") ?? "") ?? .bluePurple
         self.hotkeyChoice = HotkeyChoice(rawValue: defaults.string(forKey: "hotkeyChoice") ?? "") ?? .option
+        self.asrBackend = AsrBackend(rawValue: defaults.string(forKey: "asrBackend") ?? "") ?? .apple
         self.recentTranscriptions = Self.loadTranscriptions()
     }
 

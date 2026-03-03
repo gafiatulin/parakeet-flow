@@ -1,5 +1,6 @@
 import SwiftUI
 import AVFoundation
+import FluidAudio
 
 @available(macOS 26, *)
 @MainActor
@@ -8,8 +9,14 @@ final class Orchestrator {
     let appState: AppState
     private let audioCapture = AudioCaptureManager()
     private let transcriptionEngine = TranscriptionEngine()
+    private let parakeetV2Engine: ParakeetEngine
+    private let parakeetEngine: ParakeetEngine
+    private let qwen3Engine: Qwen3AsrEngine
+    private let qwen3Int8Engine: Qwen3AsrEngine
     private let hotkeyManager = HotkeyManager()
     private let overlayController = RecordingOverlayController()
+
+    private var useBatchEngine: Bool { appState.asrBackend != .apple }
 
     private var isInitialized = false
     private var recordingStartTask: Task<Void, Never>?
@@ -19,6 +26,10 @@ final class Orchestrator {
 
     init(appState: AppState) {
         self.appState = appState
+        self.parakeetV2Engine = ParakeetEngine(version: .v2)
+        self.parakeetEngine = ParakeetEngine(version: .v3)
+        self.qwen3Engine = Qwen3AsrEngine(variant: .f32)
+        self.qwen3Int8Engine = Qwen3AsrEngine(variant: .int8)
     }
 
     func initialize() async {
@@ -38,6 +49,17 @@ final class Orchestrator {
                     self.requestStop()
                     await self.stopRecordingAndProcess()
                 } else if !self.isRecordingOrPending {
+                    // Check for usable mic before showing any UI
+                    guard AudioCaptureManager.hasUsableAudioInput() else {
+                        self.appState.phase = .error
+                        self.appState.errorMessage = AudioCaptureError.noInputDevice.localizedDescription
+                        if self.appState.isAudioFeedbackEnabled {
+                            NSSound(named: "Funk")?.play()
+                        }
+                        self.resetAfterDelay()
+                        return
+                    }
+
                     // Start recording — show feedback immediately
                     self.isRecordingOrPending = true
                     self.appState.phase = .recording
@@ -155,27 +177,61 @@ final class Orchestrator {
         guard appState.phase == .recording else { return }
 
         do {
-            let optimalFormat = try await transcriptionEngine.startSession { [weak self] partial in
-                self?.appState.partialTranscription = partial
-            }
+            if useBatchEngine {
+                switch appState.asrBackend {
+                case .parakeetV2:
+                    try await parakeetV2Engine.ensureModelLoaded()
+                case .parakeet:
+                    try await parakeetEngine.ensureModelLoaded()
+                case .qwen3Asr:
+                    try await qwen3Engine.ensureModelLoaded()
+                case .qwen3AsrInt8:
+                    try await qwen3Int8Engine.ensureModelLoaded()
+                case .apple:
+                    break
+                }
 
-            // Stop requested while starting session?
-            guard isRecordingOrPending else {
-                _ = try? await transcriptionEngine.finishSession()
-                cleanUpRecordingUI()
-                return
-            }
+                guard isRecordingOrPending else {
+                    cleanUpRecordingUI()
+                    return
+                }
 
-            try await audioCapture.startCapture(targetFormat: optimalFormat) { [transcriptionEngine] buffer in
-                transcriptionEngine.feedAudio(buffer)
-            }
+                batchStartSession()
+                let format = batchTargetFormat()
+                let feedAudio = batchFeedAudioClosure()
 
-            // Stop requested while starting capture?
-            guard isRecordingOrPending else {
-                await audioCapture.stopCapture()
-                _ = try? await transcriptionEngine.finishSession()
-                cleanUpRecordingUI()
-                return
+                try await audioCapture.startCapture(targetFormat: format) { buffer in
+                    feedAudio(buffer)
+                }
+
+                guard isRecordingOrPending else {
+                    await audioCapture.stopCapture()
+                    cleanUpRecordingUI()
+                    return
+                }
+            } else {
+                let optimalFormat = try await transcriptionEngine.startSession { [weak self] partial in
+                    self?.appState.partialTranscription = partial
+                }
+
+                // Stop requested while starting session?
+                guard isRecordingOrPending else {
+                    _ = try? await transcriptionEngine.finishSession()
+                    cleanUpRecordingUI()
+                    return
+                }
+
+                try await audioCapture.startCapture(targetFormat: optimalFormat) { [transcriptionEngine] buffer in
+                    transcriptionEngine.feedAudio(buffer)
+                }
+
+                // Stop requested while starting capture?
+                guard isRecordingOrPending else {
+                    await audioCapture.stopCapture()
+                    _ = try? await transcriptionEngine.finishSession()
+                    cleanUpRecordingUI()
+                    return
+                }
             }
         } catch {
             if appState.isRecordingOverlayEnabled {
@@ -217,7 +273,12 @@ final class Orchestrator {
 
         let rawText: String
         do {
-            rawText = try await transcriptionEngine.finishSession()
+            if useBatchEngine {
+                appState.phase = .processing
+                rawText = try await batchFinishSession()
+            } else {
+                rawText = try await transcriptionEngine.finishSession()
+            }
         } catch {
             appState.phase = .error
             appState.errorMessage = "Transcription failed: \(error.localizedDescription)"
@@ -281,10 +342,229 @@ final class Orchestrator {
         }
 
         await audioCapture.stopCapture()
-        _ = try? await transcriptionEngine.finishSession()
+        if !useBatchEngine {
+            _ = try? await transcriptionEngine.finishSession()
+        }
 
         appState.partialTranscription = nil
         appState.phase = .idle
+    }
+
+    // MARK: - Batch engine helpers
+
+    private func batchStartSession() {
+        switch appState.asrBackend {
+        case .parakeetV2: parakeetV2Engine.startSession()
+        case .parakeet: parakeetEngine.startSession()
+        case .qwen3Asr: qwen3Engine.startSession()
+        case .qwen3AsrInt8: qwen3Int8Engine.startSession()
+        case .apple: break
+        }
+    }
+
+    /// Returns a Sendable closure that feeds audio to the active batch engine.
+    /// Captures the engine reference so it can be called from the audio tap thread.
+    private func batchFeedAudioClosure() -> @Sendable (AVAudioPCMBuffer) -> Void {
+        switch appState.asrBackend {
+        case .parakeetV2:
+            let engine = parakeetV2Engine
+            return { buffer in engine.feedAudio(buffer) }
+        case .parakeet:
+            let engine = parakeetEngine
+            return { buffer in engine.feedAudio(buffer) }
+        case .qwen3Asr:
+            let engine = qwen3Engine
+            return { buffer in engine.feedAudio(buffer) }
+        case .qwen3AsrInt8:
+            let engine = qwen3Int8Engine
+            return { buffer in engine.feedAudio(buffer) }
+        case .apple:
+            return { _ in }
+        }
+    }
+
+    private func batchTargetFormat() -> AVAudioFormat? {
+        switch appState.asrBackend {
+        case .parakeetV2: return parakeetV2Engine.targetFormat
+        case .parakeet: return parakeetEngine.targetFormat
+        case .qwen3Asr: return qwen3Engine.targetFormat
+        case .qwen3AsrInt8: return qwen3Int8Engine.targetFormat
+        case .apple: return nil
+        }
+    }
+
+    private func batchFinishSession() async throws -> String {
+        switch appState.asrBackend {
+        case .parakeetV2: return try await parakeetV2Engine.finishSession()
+        case .parakeet: return try await parakeetEngine.finishSession()
+        case .qwen3Asr: return try await qwen3Engine.finishSession()
+        case .qwen3AsrInt8: return try await qwen3Int8Engine.finishSession()
+        case .apple: return ""
+        }
+    }
+
+    // MARK: - Model status
+
+    func checkModelStatus() {
+        let backend = appState.asrBackend
+        guard backend.needsDownload else { return }
+        // Don't overwrite if already downloading
+        if case .downloading = appState.modelStatusByBackend[backend] { return }
+        let dir = Self.cacheDirectory(for: backend)
+        let exists: Bool
+        switch backend {
+        case .parakeetV2:
+            exists = AsrModels.modelsExist(at: dir, version: .v2)
+        case .parakeet:
+            exists = AsrModels.modelsExist(at: dir, version: .v3)
+        case .qwen3Asr, .qwen3AsrInt8:
+            exists = Qwen3AsrModels.modelsExist(at: dir)
+        case .apple:
+            exists = true
+        }
+        appState.modelStatusByBackend[backend] = exists ? .ready : .notDownloaded
+    }
+
+    private var downloadProgressTasks: [AsrBackend: Task<Void, Never>] = [:]
+    private var downloadTasks: [AsrBackend: Task<Void, Error>] = [:]
+
+    func downloadModel() {
+        let backend = appState.asrBackend
+        guard backend.needsDownload else { return }
+        appState.modelStatusByBackend[backend] = .downloading(progress: 0)
+
+        let cacheDir = Self.cacheDirectory(for: backend)
+        let expectedBytes = Self.expectedModelBytes(for: backend)
+
+        let progressTask = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(500))
+                guard !Task.isCancelled else { return }
+                let currentSize = Self.directorySize(cacheDir)
+                let fraction = min(Double(currentSize) / Double(expectedBytes), 0.99)
+                appState.modelStatusByBackend[backend] = .downloading(progress: fraction)
+            }
+        }
+        downloadProgressTasks[backend] = progressTask
+
+        let downloadTask = Task {
+            switch backend {
+            case .parakeetV2:
+                try await parakeetV2Engine.ensureModelLoaded()
+            case .parakeet:
+                try await parakeetEngine.ensureModelLoaded()
+            case .qwen3Asr:
+                try await qwen3Engine.ensureModelLoaded()
+            case .qwen3AsrInt8:
+                try await qwen3Int8Engine.ensureModelLoaded()
+            case .apple:
+                break
+            }
+        }
+        downloadTasks[backend] = downloadTask
+
+        Task {
+            do {
+                try await downloadTask.value
+                progressTask.cancel()
+                downloadProgressTasks[backend] = nil
+                downloadTasks[backend] = nil
+                appState.modelStatusByBackend[backend] = .ready
+            } catch is CancellationError {
+                progressTask.cancel()
+                downloadProgressTasks[backend] = nil
+                downloadTasks[backend] = nil
+                Self.removeModelCache(for: backend)
+                appState.modelStatusByBackend[backend] = .notDownloaded
+            } catch {
+                progressTask.cancel()
+                downloadProgressTasks[backend] = nil
+                downloadTasks[backend] = nil
+                appState.modelStatusByBackend[backend] = .error(error.localizedDescription)
+            }
+        }
+    }
+
+    func cancelDownload() {
+        let backend = appState.asrBackend
+        downloadTasks[backend]?.cancel()
+    }
+
+    func deleteModel() {
+        let backend = appState.asrBackend
+        guard backend.needsDownload else { return }
+        Self.removeModelCache(for: backend)
+        appState.modelStatusByBackend[backend] = .notDownloaded
+    }
+
+    func revealModelCache() {
+        let dir = Self.fluidAudioModelsRoot()
+        if FileManager.default.fileExists(atPath: dir.path) {
+            NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: dir.path)
+        } else {
+            NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: dir.deletingLastPathComponent().path)
+        }
+    }
+
+    func deleteAllModels() {
+        // Cancel any active downloads
+        for (backend, task) in downloadTasks {
+            task.cancel()
+            downloadProgressTasks[backend]?.cancel()
+        }
+        downloadTasks.removeAll()
+        downloadProgressTasks.removeAll()
+
+        // Remove each backend's cache directory
+        for backend in AsrBackend.allCases where backend.needsDownload {
+            Self.removeModelCache(for: backend)
+            appState.modelStatusByBackend[backend] = .notDownloaded
+        }
+    }
+
+    private static func cacheDirectory(for backend: AsrBackend) -> URL {
+        switch backend {
+        case .parakeetV2: return AsrModels.defaultCacheDirectory(for: .v2)
+        case .parakeet: return AsrModels.defaultCacheDirectory(for: .v3)
+        case .qwen3Asr: return Qwen3AsrModels.defaultCacheDirectory(variant: .f32)
+        case .qwen3AsrInt8: return Qwen3AsrModels.defaultCacheDirectory(variant: .int8)
+        case .apple: return URL(fileURLWithPath: "/dev/null")
+        }
+    }
+
+    private static func expectedModelBytes(for backend: AsrBackend) -> Int64 {
+        switch backend {
+        case .parakeetV2: return 473_000_000
+        case .parakeet: return 484_000_000
+        case .qwen3Asr: return 3_512_000_000
+        case .qwen3AsrInt8: return 2_304_000_000
+        case .apple: return 1
+        }
+    }
+
+    private static func removeModelCache(for backend: AsrBackend) {
+        guard backend.needsDownload else { return }
+        try? FileManager.default.removeItem(at: cacheDirectory(for: backend))
+    }
+
+    private static func fluidAudioModelsRoot() -> URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            .appendingPathComponent("FluidAudio", isDirectory: true)
+            .appendingPathComponent("Models", isDirectory: true)
+    }
+
+    private static func directorySize(_ url: URL) -> Int64 {
+        let fm = FileManager.default
+        guard let enumerator = fm.enumerator(at: url, includingPropertiesForKeys: [.fileSizeKey], options: [.skipsHiddenFiles]) else {
+            return 0
+        }
+        var total: Int64 = 0
+        for case let fileURL as URL in enumerator {
+            if let size = try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize {
+                total += Int64(size)
+            }
+        }
+        return total
     }
 
     private func resetAfterDelay() {

@@ -14,7 +14,7 @@ enum PostProcessor {
         let session = LanguageModelSession(instructions: instructions)
 
         let response = try await session.respond(
-            to: rawText,
+            to: "[DICTATION START]\n\(rawText)\n[DICTATION END]",
             options: GenerationOptions(temperature: 0.1)
         )
         return response.content.trimmingCharacters(in: .whitespacesAndNewlines)

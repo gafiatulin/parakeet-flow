@@ -5,6 +5,7 @@ struct MenuBarView: View {
     @Bindable var appState: AppState
     var orchestrator: Orchestrator?
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         // Status (shows error detail or live transcription inline)
@@ -33,11 +34,15 @@ struct MenuBarView: View {
         Divider()
 
         Button("History") {
+            NSApp.activate()
             openWindow(id: "history")
         }
         .disabled(appState.recentTranscriptions.isEmpty)
 
-        SettingsLink()
+        Button("Settings...") {
+            NSApp.activate()
+            openSettings()
+        }
 
         Divider()
 

@@ -9,6 +9,11 @@ options:
     icon:
       file: true
 
+packages:
+  FluidAudio:
+    url: https://github.com/FluidInference/FluidAudio.git
+    branch: main
+
 targets:
   ParakeetFlow:
     type: application
@@ -19,6 +24,8 @@ targets:
           - Resources/Info.plist
       - path: AppIcon.icon
         buildPhase: resources
+    dependencies:
+      - package: FluidAudio
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.github.gafiatulin.ParakeetFlow
