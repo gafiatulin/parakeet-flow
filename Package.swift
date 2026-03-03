@@ -8,8 +8,7 @@ let package = Package(
         .executableTarget(
             name: "ParakeetFlow",
             path: "Sources/ParakeetFlow",
-            exclude: ["Resources/Info.plist"],
-            resources: [.process("Resources/Assets.xcassets")]
+            exclude: ["Resources/Info.plist", "Resources/Assets.xcassets"]
         ),
     ]
 )
