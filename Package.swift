@@ -1,4 +1,4 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.2
 import PackageDescription
 
 let package = Package(
@@ -8,7 +8,8 @@ let package = Package(
         .executableTarget(
             name: "ParakeetFlow",
             path: "Sources/ParakeetFlow",
-            exclude: ["Resources/Info.plist"]
+            exclude: ["Resources/Info.plist"],
+            resources: [.process("Resources/Assets.xcassets")]
         ),
     ]
 )

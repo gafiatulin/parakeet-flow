@@ -1,10 +1,13 @@
 name: ParakeetFlow
 options:
-  bundleIdPrefix: com.parakeetflow
+  bundleIdPrefix: com.github.gafiatulin
   deploymentTarget:
     macOS: "26.0"
   xcodeVersion: "26.0"
   createIntermediateGroups: true
+  fileTypes:
+    icon:
+      file: true
 
 targets:
   ParakeetFlow:
@@ -14,17 +17,33 @@ targets:
       - path: Sources/ParakeetFlow
         excludes:
           - Resources/Info.plist
+      - path: AppIcon.icon
+        buildPhase: resources
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.parakeetflow.ParakeetFlow
+        PRODUCT_BUNDLE_IDENTIFIER: com.github.gafiatulin.ParakeetFlow
         MARKETING_VERSION: "1.0.0"
         CURRENT_PROJECT_VERSION: "1"
         INFOPLIST_FILE: Sources/ParakeetFlow/Resources/Info.plist
         GENERATE_INFOPLIST_FILE: false
         CODE_SIGN_ENTITLEMENTS: ParakeetFlow.entitlements
         ENABLE_APP_SANDBOX: false
-        SWIFT_VERSION: "6.0"
+        SWIFT_VERSION: "6.2"
     entitlements:
       path: ParakeetFlow.entitlements
       properties:
         com.apple.security.device.audio-input: true
+
+schemes:
+  ParakeetFlow:
+    build:
+      targets:
+        ParakeetFlow: all
+    run:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release

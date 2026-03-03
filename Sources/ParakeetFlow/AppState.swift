@@ -36,6 +36,7 @@ enum HotkeyChoice: String, CaseIterable {
 }
 
 enum WaveformColor: String, CaseIterable {
+    case parakeet
     case white
     case green
     case bluePurple
@@ -43,6 +44,7 @@ enum WaveformColor: String, CaseIterable {
 
     var label: String {
         switch self {
+        case .parakeet: return "Parakeet"
         case .white: return "White"
         case .green: return "Green"
         case .bluePurple: return "Blue / Purple"
@@ -52,6 +54,14 @@ enum WaveformColor: String, CaseIterable {
 
     var colors: [Color] {
         switch self {
+        case .parakeet:
+            return [
+                Color(red: 0.0, green: 0.7, blue: 0.65),    // teal
+                Color(red: 0.0, green: 0.8, blue: 0.5),     // green-teal
+                Color(red: 0.0, green: 0.85, blue: 0.45),   // green
+                Color(red: 0.0, green: 0.8, blue: 0.5),     // green-teal
+                Color(red: 0.9, green: 0.78, blue: 0.2),    // yellow
+            ]
         case .white:
             return Array(repeating: .white, count: 5)
         case .green:
@@ -127,7 +137,7 @@ final class AppState {
             "isFillerRemovalEnabled": true,
             "isAudioFeedbackEnabled": true,
             "isRecordingOverlayEnabled": false,
-            "waveformColor": WaveformColor.bluePurple.rawValue,
+            "waveformColor": WaveformColor.parakeet.rawValue,
             "hotkeyChoice": HotkeyChoice.option.rawValue,
         ])
         self.isLLMEnabled = defaults.bool(forKey: "isLLMEnabled")
