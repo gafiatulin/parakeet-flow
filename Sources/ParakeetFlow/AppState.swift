@@ -1,0 +1,236 @@
+import SwiftUI
+import CoreGraphics
+
+enum HotkeyChoice: String, CaseIterable {
+    case option
+    case rightCommand
+    case control
+    case fn
+
+    var eventFlag: CGEventFlags {
+        switch self {
+        case .option: return .maskAlternate
+        case .rightCommand: return .maskCommand
+        case .control: return .maskControl
+        case .fn: return .maskSecondaryFn
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .option: return "⌥"
+        case .rightCommand: return "⌘"
+        case .control: return "⌃"
+        case .fn: return "fn"
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .option: return "⌥ Option"
+        case .rightCommand: return "⌘ Command"
+        case .control: return "⌃ Control"
+        case .fn: return "fn"
+        }
+    }
+}
+
+enum WaveformColor: String, CaseIterable {
+    case white
+    case green
+    case bluePurple
+    case red
+
+    var label: String {
+        switch self {
+        case .white: return "White"
+        case .green: return "Green"
+        case .bluePurple: return "Blue / Purple"
+        case .red: return "Red"
+        }
+    }
+
+    var colors: [Color] {
+        switch self {
+        case .white:
+            return Array(repeating: .white, count: 5)
+        case .green:
+            return [
+                Color(red: 0.2, green: 0.9, blue: 0.4),
+                Color(red: 0.1, green: 1.0, blue: 0.5),
+                Color(red: 0.0, green: 1.0, blue: 0.6),
+                Color(red: 0.1, green: 1.0, blue: 0.5),
+                Color(red: 0.2, green: 0.9, blue: 0.4),
+            ]
+        case .bluePurple:
+            return [
+                Color(red: 0.3, green: 0.6, blue: 1.0),
+                Color(red: 0.5, green: 0.4, blue: 1.0),
+                Color(red: 0.8, green: 0.3, blue: 0.9),
+                Color(red: 0.5, green: 0.4, blue: 1.0),
+                Color(red: 0.3, green: 0.6, blue: 1.0),
+            ]
+        case .red:
+            return [
+                Color(red: 1.0, green: 0.4, blue: 0.2),
+                Color(red: 1.0, green: 0.25, blue: 0.2),
+                Color(red: 1.0, green: 0.15, blue: 0.15),
+                Color(red: 1.0, green: 0.25, blue: 0.2),
+                Color(red: 1.0, green: 0.4, blue: 0.2),
+            ]
+        }
+    }
+}
+
+enum AppPhase: String {
+    case idle
+    case recording
+    case processing
+    case inserting
+    case error
+}
+
+@MainActor
+@Observable
+final class AppState {
+    var phase: AppPhase = .idle
+    var partialTranscription: String?
+    var lastTranscription: String?
+    var lastCleanedText: String?
+    var recentTranscriptions: [TranscriptionRecord] = []
+    var errorMessage: String?
+
+    var isLLMEnabled: Bool {
+        didSet { UserDefaults.standard.set(isLLMEnabled, forKey: "isLLMEnabled") }
+    }
+    var isFillerRemovalEnabled: Bool {
+        didSet { UserDefaults.standard.set(isFillerRemovalEnabled, forKey: "isFillerRemovalEnabled") }
+    }
+    var isAudioFeedbackEnabled: Bool {
+        didSet { UserDefaults.standard.set(isAudioFeedbackEnabled, forKey: "isAudioFeedbackEnabled") }
+    }
+    var isRecordingOverlayEnabled: Bool {
+        didSet { UserDefaults.standard.set(isRecordingOverlayEnabled, forKey: "isRecordingOverlayEnabled") }
+    }
+    var waveformColor: WaveformColor {
+        didSet { UserDefaults.standard.set(waveformColor.rawValue, forKey: "waveformColor") }
+    }
+    var hotkeyChoice: HotkeyChoice {
+        didSet { UserDefaults.standard.set(hotkeyChoice.rawValue, forKey: "hotkeyChoice") }
+    }
+
+    init() {
+        let defaults = UserDefaults.standard
+        // Register defaults for first launch
+        defaults.register(defaults: [
+            "isLLMEnabled": true,
+            "isFillerRemovalEnabled": true,
+            "isAudioFeedbackEnabled": true,
+            "isRecordingOverlayEnabled": false,
+            "waveformColor": WaveformColor.bluePurple.rawValue,
+            "hotkeyChoice": HotkeyChoice.option.rawValue,
+        ])
+        self.isLLMEnabled = defaults.bool(forKey: "isLLMEnabled")
+        self.isFillerRemovalEnabled = defaults.bool(forKey: "isFillerRemovalEnabled")
+        self.isAudioFeedbackEnabled = defaults.bool(forKey: "isAudioFeedbackEnabled")
+        self.isRecordingOverlayEnabled = defaults.bool(forKey: "isRecordingOverlayEnabled")
+        self.waveformColor = WaveformColor(rawValue: defaults.string(forKey: "waveformColor") ?? "") ?? .bluePurple
+        self.hotkeyChoice = HotkeyChoice(rawValue: defaults.string(forKey: "hotkeyChoice") ?? "") ?? .option
+        self.recentTranscriptions = Self.loadTranscriptions()
+    }
+
+    var isLaunchAtLoginEnabled: Bool {
+        get { LaunchAtLoginManager.isEnabled }
+        set { LaunchAtLoginManager.setEnabled(newValue) }
+    }
+
+    var statusText: String {
+        switch phase {
+        case .idle: return "Ready"
+        case .recording: return "Recording..."
+        case .processing: return "Cleaning up..."
+        case .inserting: return "Inserting..."
+        case .error: return errorMessage ?? "Error"
+        }
+    }
+
+    var menuBarIcon: String {
+        switch phase {
+        case .idle: return "waveform"
+        case .recording: return "waveform.circle.fill"
+        case .processing: return "ellipsis.circle"
+        case .inserting: return "doc.on.clipboard"
+        case .error: return "exclamationmark.triangle"
+        }
+    }
+
+    func addTranscription(raw: String, filtered: String?, cleaned: String?,
+                          context: AppContext?, filterRan: Bool, llmRan: Bool) {
+        let record = TranscriptionRecord(
+            timestamp: Date(),
+            rawText: raw,
+            filteredText: filtered,
+            cleanedText: cleaned,
+            context: context,
+            filterRan: filterRan,
+            llmRan: llmRan
+        )
+        recentTranscriptions.insert(record, at: 0)
+        if recentTranscriptions.count > 20 {
+            recentTranscriptions.removeLast()
+        }
+        lastTranscription = raw
+        lastCleanedText = cleaned
+        saveTranscriptions()
+    }
+
+    func removeTranscriptions(at offsets: IndexSet) {
+        recentTranscriptions.remove(atOffsets: offsets)
+        saveTranscriptions()
+    }
+
+    func clearTranscriptions() {
+        recentTranscriptions.removeAll()
+        saveTranscriptions()
+    }
+
+    private func saveTranscriptions() {
+        if let data = try? JSONEncoder().encode(recentTranscriptions) {
+            UserDefaults.standard.set(data, forKey: "recentTranscriptions")
+        }
+    }
+
+    private static func loadTranscriptions() -> [TranscriptionRecord] {
+        guard let data = UserDefaults.standard.data(forKey: "recentTranscriptions"),
+              let records = try? JSONDecoder().decode([TranscriptionRecord].self, from: data)
+        else { return [] }
+        return records
+    }
+}
+
+struct TranscriptionRecord: Identifiable, Codable {
+    let id: UUID
+    let timestamp: Date
+    let rawText: String
+    let filteredText: String?
+    let cleanedText: String?
+    let context: AppContext?
+    let filterRan: Bool
+    let llmRan: Bool
+
+    init(timestamp: Date, rawText: String, filteredText: String?, cleanedText: String?,
+         context: AppContext?, filterRan: Bool, llmRan: Bool) {
+        self.id = UUID()
+        self.timestamp = timestamp
+        self.rawText = rawText
+        self.filteredText = filteredText
+        self.cleanedText = cleanedText
+        self.context = context
+        self.filterRan = filterRan
+        self.llmRan = llmRan
+    }
+
+    var displayText: String {
+        cleanedText ?? filteredText ?? rawText
+    }
+}

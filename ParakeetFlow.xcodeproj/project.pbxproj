@@ -1,0 +1,427 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 63;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0492CF6DC04F47386312901A /* PromptBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AEF853929E08A647D1F92EB /* PromptBuilder.swift */; };
+		0493CAD23F2CF478DD0EC020 /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8640C68EC3FB13F308C3A10A /* HotkeyManager.swift */; };
+		1876EAD6487D9F71E7D30C21 /* TextInserter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91A2EA383FE1B95A0295E425 /* TextInserter.swift */; };
+		26745B69E75D94C320626DD5 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3121F09D5860E95FA1CFBE1E /* MenuBarView.swift */; };
+		6B081FEBFA92FA73CFB3CE64 /* ParakeetFlowApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5807484FD202A35EE186D56E /* ParakeetFlowApp.swift */; };
+		6FAD4C7B4F202663D4B4AC6E /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = E49902C50F4490C33142EFAD /* AppState.swift */; };
+		777BA900D0C10C352C9885B5 /* TranscriptionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3D1BA5036D37C82621491C /* TranscriptionEngine.swift */; };
+		79D5A40BD489C26718793324 /* LaunchAtLoginManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE4C60B7A303C85B8D20B7FC /* LaunchAtLoginManager.swift */; };
+		7A3B1D2E8F4C5A9B01E6D7C3 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D8E2F1A7B3C6D5E09A4F8B2 /* HistoryView.swift */; };
+		82EC489697F7CDCF61327A4B /* FillerWordFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD2129917444A9E2065A8295 /* FillerWordFilter.swift */; };
+		8BEB5C3AFEB35D8A212C2654 /* Orchestrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E4370CCBC1212587B1D39E6 /* Orchestrator.swift */; };
+		8DE5CA824BC4A6FB6CF85298 /* RecordingOverlayWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC5ACBD2F8E60039D3927F34 /* RecordingOverlayWindow.swift */; };
+		AEA156DA20D3B31BE6140B7C /* AudioFeedbackManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A09FEB278B8EDA4FFEC4082E /* AudioFeedbackManager.swift */; };
+		BB665DD036CD5F93143DA93F /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B68F2DF02985DEFB60B564C /* SettingsView.swift */; };
+		D65E331A614A386E983AD222 /* PostProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41A63AEF32314C3E5D4F7AFB /* PostProcessor.swift */; };
+		E9EEAE9AF816BC28E94941B6 /* ContextReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C773BB70CEA412B873AABB2 /* ContextReader.swift */; };
+		F8C0F4CC0CB56ACC21290924 /* AudioCaptureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F9BB4C4C26B24366EFC96FF /* AudioCaptureManager.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		015ED22ECDB1EAD0F8F0D431 /* ParakeetFlow.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ParakeetFlow.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0F9BB4C4C26B24366EFC96FF /* AudioCaptureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCaptureManager.swift; sourceTree = "<group>"; };
+		2AEF853929E08A647D1F92EB /* PromptBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptBuilder.swift; sourceTree = "<group>"; };
+		3121F09D5860E95FA1CFBE1E /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
+		3E3D1BA5036D37C82621491C /* TranscriptionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionEngine.swift; sourceTree = "<group>"; };
+		3E4370CCBC1212587B1D39E6 /* Orchestrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Orchestrator.swift; sourceTree = "<group>"; };
+		41A63AEF32314C3E5D4F7AFB /* PostProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostProcessor.swift; sourceTree = "<group>"; };
+		4D8E2F1A7B3C6D5E09A4F8B2 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
+		5807484FD202A35EE186D56E /* ParakeetFlowApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParakeetFlowApp.swift; sourceTree = "<group>"; };
+		6C773BB70CEA412B873AABB2 /* ContextReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextReader.swift; sourceTree = "<group>"; };
+		8640C68EC3FB13F308C3A10A /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
+		8B68F2DF02985DEFB60B564C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		91A2EA383FE1B95A0295E425 /* TextInserter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextInserter.swift; sourceTree = "<group>"; };
+		A09FEB278B8EDA4FFEC4082E /* AudioFeedbackManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFeedbackManager.swift; sourceTree = "<group>"; };
+		CE4C60B7A303C85B8D20B7FC /* LaunchAtLoginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginManager.swift; sourceTree = "<group>"; };
+		DC5ACBD2F8E60039D3927F34 /* RecordingOverlayWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingOverlayWindow.swift; sourceTree = "<group>"; };
+		E49902C50F4490C33142EFAD /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		FD2129917444A9E2065A8295 /* FillerWordFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FillerWordFilter.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		0A483E906D7367FE35B63D76 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				1DA92A96F68893FFD6ED2028 /* ParakeetFlow */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		1119A474DE300F80E0713F4E /* LLM */ = {
+			isa = PBXGroup;
+			children = (
+				41A63AEF32314C3E5D4F7AFB /* PostProcessor.swift */,
+				2AEF853929E08A647D1F92EB /* PromptBuilder.swift */,
+			);
+			path = LLM;
+			sourceTree = "<group>";
+		};
+		1DA92A96F68893FFD6ED2028 /* ParakeetFlow */ = {
+			isa = PBXGroup;
+			children = (
+				E49902C50F4490C33142EFAD /* AppState.swift */,
+				4D8E2F1A7B3C6D5E09A4F8B2 /* HistoryView.swift */,
+				CE4C60B7A303C85B8D20B7FC /* LaunchAtLoginManager.swift */,
+				3121F09D5860E95FA1CFBE1E /* MenuBarView.swift */,
+				3E4370CCBC1212587B1D39E6 /* Orchestrator.swift */,
+				5807484FD202A35EE186D56E /* ParakeetFlowApp.swift */,
+				8B68F2DF02985DEFB60B564C /* SettingsView.swift */,
+				4BC9AF506800F7967FA9A484 /* ASR */,
+				2B2B7D416DBA23D48DD83665 /* Audio */,
+				6353E51F30A8ACF4C82FBDCC /* Context */,
+				23631352DDB0797E775EAA67 /* Hotkey */,
+				C3DA28D2F7AF36FC95C38D58 /* Insertion */,
+				1119A474DE300F80E0713F4E /* LLM */,
+				562F723C5CEF79792C89DE01 /* UI */,
+			);
+			path = ParakeetFlow;
+			sourceTree = "<group>";
+		};
+		23631352DDB0797E775EAA67 /* Hotkey */ = {
+			isa = PBXGroup;
+			children = (
+				8640C68EC3FB13F308C3A10A /* HotkeyManager.swift */,
+			);
+			path = Hotkey;
+			sourceTree = "<group>";
+		};
+		2B2B7D416DBA23D48DD83665 /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				0F9BB4C4C26B24366EFC96FF /* AudioCaptureManager.swift */,
+				A09FEB278B8EDA4FFEC4082E /* AudioFeedbackManager.swift */,
+			);
+			path = Audio;
+			sourceTree = "<group>";
+		};
+		4BC9AF506800F7967FA9A484 /* ASR */ = {
+			isa = PBXGroup;
+			children = (
+				FD2129917444A9E2065A8295 /* FillerWordFilter.swift */,
+				3E3D1BA5036D37C82621491C /* TranscriptionEngine.swift */,
+			);
+			path = ASR;
+			sourceTree = "<group>";
+		};
+		562F723C5CEF79792C89DE01 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				DC5ACBD2F8E60039D3927F34 /* RecordingOverlayWindow.swift */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+		6353E51F30A8ACF4C82FBDCC /* Context */ = {
+			isa = PBXGroup;
+			children = (
+				6C773BB70CEA412B873AABB2 /* ContextReader.swift */,
+			);
+			path = Context;
+			sourceTree = "<group>";
+		};
+		6867DEF9552432D69E6D3D87 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				015ED22ECDB1EAD0F8F0D431 /* ParakeetFlow.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C3DA28D2F7AF36FC95C38D58 /* Insertion */ = {
+			isa = PBXGroup;
+			children = (
+				91A2EA383FE1B95A0295E425 /* TextInserter.swift */,
+			);
+			path = Insertion;
+			sourceTree = "<group>";
+		};
+		EE394DC47A41A2B57D73E556 = {
+			isa = PBXGroup;
+			children = (
+				0A483E906D7367FE35B63D76 /* Sources */,
+				6867DEF9552432D69E6D3D87 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		9403985224845F46BCE6D61C /* ParakeetFlow */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C8C1726A4C1ACC4A3890DA00 /* Build configuration list for PBXNativeTarget "ParakeetFlow" */;
+			buildPhases = (
+				A985865C5F5D021CE34FADF0 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ParakeetFlow;
+			packageProductDependencies = (
+			);
+			productName = ParakeetFlow;
+			productReference = 015ED22ECDB1EAD0F8F0D431 /* ParakeetFlow.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		AA7CDE2613FDA12E01E34E90 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 2630;
+			};
+			buildConfigurationList = 953F30BA301E952881C315C2 /* Build configuration list for PBXProject "ParakeetFlow" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = EE394DC47A41A2B57D73E556;
+			minimizedProjectReferenceProxies = 1;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				9403985224845F46BCE6D61C /* ParakeetFlow */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A985865C5F5D021CE34FADF0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6FAD4C7B4F202663D4B4AC6E /* AppState.swift in Sources */,
+				F8C0F4CC0CB56ACC21290924 /* AudioCaptureManager.swift in Sources */,
+				AEA156DA20D3B31BE6140B7C /* AudioFeedbackManager.swift in Sources */,
+				E9EEAE9AF816BC28E94941B6 /* ContextReader.swift in Sources */,
+				82EC489697F7CDCF61327A4B /* FillerWordFilter.swift in Sources */,
+				7A3B1D2E8F4C5A9B01E6D7C3 /* HistoryView.swift in Sources */,
+				0493CAD23F2CF478DD0EC020 /* HotkeyManager.swift in Sources */,
+				79D5A40BD489C26718793324 /* LaunchAtLoginManager.swift in Sources */,
+				26745B69E75D94C320626DD5 /* MenuBarView.swift in Sources */,
+				8BEB5C3AFEB35D8A212C2654 /* Orchestrator.swift in Sources */,
+				6B081FEBFA92FA73CFB3CE64 /* ParakeetFlowApp.swift in Sources */,
+				D65E331A614A386E983AD222 /* PostProcessor.swift in Sources */,
+				0492CF6DC04F47386312901A /* PromptBuilder.swift in Sources */,
+				8DE5CA824BC4A6FB6CF85298 /* RecordingOverlayWindow.swift in Sources */,
+				BB665DD036CD5F93143DA93F /* SettingsView.swift in Sources */,
+				1876EAD6487D9F71E7D30C21 /* TextInserter.swift in Sources */,
+				777BA900D0C10C352C9885B5 /* TranscriptionEngine.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		2FB9FF081421A861743EDB3D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		5547196FDC359266CD33F54A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = ParakeetFlow.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Sources/ParakeetFlow/Resources/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.parakeetflow.ParakeetFlow;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		91D71FE8B4EFD1AE8064AC7D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		E11D154D2C3BB01FA21EDEFF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = ParakeetFlow.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Sources/ParakeetFlow/Resources/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.parakeetflow.ParakeetFlow;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		953F30BA301E952881C315C2 /* Build configuration list for PBXProject "ParakeetFlow" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2FB9FF081421A861743EDB3D /* Debug */,
+				91D71FE8B4EFD1AE8064AC7D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C8C1726A4C1ACC4A3890DA00 /* Build configuration list for PBXNativeTarget "ParakeetFlow" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5547196FDC359266CD33F54A /* Debug */,
+				E11D154D2C3BB01FA21EDEFF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = AA7CDE2613FDA12E01E34E90 /* Project object */;
+}
