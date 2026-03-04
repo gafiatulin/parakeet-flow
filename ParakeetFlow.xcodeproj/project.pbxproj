@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -12,6 +12,7 @@
 		1876EAD6487D9F71E7D30C21 /* TextInserter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91A2EA383FE1B95A0295E425 /* TextInserter.swift */; };
 		26745B69E75D94C320626DD5 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3121F09D5860E95FA1CFBE1E /* MenuBarView.swift */; };
 		3744B89752983DCD3025DDFA /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = 72603CF3974A051DD441E58B /* FluidAudio */; };
+		434D9F0293FC9817FC4DE56D /* MLXPostProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5763DC24605E54103BE7DCEA /* MLXPostProcessor.swift */; };
 		5FD5B92F9347F7C4A179F002 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3AA4B5975BB4221A428087A /* HistoryView.swift */; };
 		63504C39A27A61763B64E984 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 8A4646A2294B0BD5ACCB193A /* AppIcon.icon */; };
 		6B081FEBFA92FA73CFB3CE64 /* ParakeetFlowApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5807484FD202A35EE186D56E /* ParakeetFlowApp.swift */; };
@@ -25,6 +26,7 @@
 		AEA156DA20D3B31BE6140B7C /* AudioFeedbackManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A09FEB278B8EDA4FFEC4082E /* AudioFeedbackManager.swift */; };
 		BB665DD036CD5F93143DA93F /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B68F2DF02985DEFB60B564C /* SettingsView.swift */; };
 		C8B7588448DF48ED4FDA6974 /* ParakeetEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D263AEB4E3B0D9475F482646 /* ParakeetEngine.swift */; };
+		D0C092FB7F275D430B73C45A /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 8A6EE45AC41985F3A19294A1 /* MLXLLM */; };
 		D65E331A614A386E983AD222 /* PostProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41A63AEF32314C3E5D4F7AFB /* PostProcessor.swift */; };
 		E9EEAE9AF816BC28E94941B6 /* ContextReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C773BB70CEA412B873AABB2 /* ContextReader.swift */; };
 		F8C0F4CC0CB56ACC21290924 /* AudioCaptureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F9BB4C4C26B24366EFC96FF /* AudioCaptureManager.swift */; };
@@ -38,10 +40,11 @@
 		3E3D1BA5036D37C82621491C /* TranscriptionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionEngine.swift; sourceTree = "<group>"; };
 		3E4370CCBC1212587B1D39E6 /* Orchestrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Orchestrator.swift; sourceTree = "<group>"; };
 		41A63AEF32314C3E5D4F7AFB /* PostProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostProcessor.swift; sourceTree = "<group>"; };
+		5763DC24605E54103BE7DCEA /* MLXPostProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MLXPostProcessor.swift; sourceTree = "<group>"; };
 		5807484FD202A35EE186D56E /* ParakeetFlowApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParakeetFlowApp.swift; sourceTree = "<group>"; };
 		6C773BB70CEA412B873AABB2 /* ContextReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextReader.swift; sourceTree = "<group>"; };
 		8640C68EC3FB13F308C3A10A /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
-		8A4646A2294B0BD5ACCB193A /* AppIcon.icon */ = {isa = PBXFileReference; path = AppIcon.icon; sourceTree = "<group>"; };
+		8A4646A2294B0BD5ACCB193A /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		8B68F2DF02985DEFB60B564C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		91A2EA383FE1B95A0295E425 /* TextInserter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextInserter.swift; sourceTree = "<group>"; };
 		A09FEB278B8EDA4FFEC4082E /* AudioFeedbackManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFeedbackManager.swift; sourceTree = "<group>"; };
@@ -60,6 +63,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				3744B89752983DCD3025DDFA /* FluidAudio in Frameworks */,
+				D0C092FB7F275D430B73C45A /* MLXLLM in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -77,6 +81,7 @@
 		1119A474DE300F80E0713F4E /* LLM */ = {
 			isa = PBXGroup;
 			children = (
+				5763DC24605E54103BE7DCEA /* MLXPostProcessor.swift */,
 				41A63AEF32314C3E5D4F7AFB /* PostProcessor.swift */,
 				2AEF853929E08A647D1F92EB /* PromptBuilder.swift */,
 			);
@@ -191,6 +196,7 @@
 			name = ParakeetFlow;
 			packageProductDependencies = (
 				72603CF3974A051DD441E58B /* FluidAudio */,
+				8A6EE45AC41985F3A19294A1 /* MLXLLM */,
 			);
 			productName = ParakeetFlow;
 			productReference = 015ED22ECDB1EAD0F8F0D431 /* ParakeetFlow.app */;
@@ -203,7 +209,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 2600;
+				LastUpgradeCheck = 2630;
 			};
 			buildConfigurationList = 953F30BA301E952881C315C2 /* Build configuration list for PBXProject "ParakeetFlow" */;
 			compatibilityVersion = "Xcode 14.0";
@@ -217,8 +223,8 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				58D57787AB148D66D0540B39 /* XCRemoteSwiftPackageReference "FluidAudio" */,
+				3735CA3D4072EB3D732BD517 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */,
 			);
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -251,6 +257,7 @@
 				5FD5B92F9347F7C4A179F002 /* HistoryView.swift in Sources */,
 				0493CAD23F2CF478DD0EC020 /* HotkeyManager.swift in Sources */,
 				79D5A40BD489C26718793324 /* LaunchAtLoginManager.swift in Sources */,
+				434D9F0293FC9817FC4DE56D /* MLXPostProcessor.swift in Sources */,
 				26745B69E75D94C320626DD5 /* MenuBarView.swift in Sources */,
 				8BEB5C3AFEB35D8A212C2654 /* Orchestrator.swift in Sources */,
 				C8B7588448DF48ED4FDA6974 /* ParakeetEngine.swift in Sources */,
@@ -302,6 +309,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -325,6 +333,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -335,10 +344,17 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
 				CODE_SIGN_ENTITLEMENTS = ParakeetFlow.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				ENABLE_APP_SANDBOX = NO;
+				DEAD_CODE_STRIPPING = YES;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Sources/ParakeetFlow/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -348,6 +364,7 @@
 				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.gafiatulin.ParakeetFlow;
 				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 6.2;
 			};
 			name = Debug;
@@ -386,6 +403,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -402,6 +420,7 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
@@ -412,10 +431,17 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
 				CODE_SIGN_ENTITLEMENTS = ParakeetFlow.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				ENABLE_APP_SANDBOX = NO;
+				DEAD_CODE_STRIPPING = YES;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Sources/ParakeetFlow/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -425,6 +451,7 @@
 				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.gafiatulin.ParakeetFlow;
 				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 6.2;
 			};
 			name = Release;
@@ -453,6 +480,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		3735CA3D4072EB3D732BD517 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ml-explore/mlx-swift-lm.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 		58D57787AB148D66D0540B39 /* XCRemoteSwiftPackageReference "FluidAudio" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/FluidInference/FluidAudio.git";
@@ -468,6 +503,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 58D57787AB148D66D0540B39 /* XCRemoteSwiftPackageReference "FluidAudio" */;
 			productName = FluidAudio;
+		};
+		8A6EE45AC41985F3A19294A1 /* MLXLLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3735CA3D4072EB3D732BD517 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXLLM;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

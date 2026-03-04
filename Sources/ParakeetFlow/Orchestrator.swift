@@ -13,6 +13,7 @@ final class Orchestrator {
     private let parakeetEngine: ParakeetEngine
     private let qwen3Engine: Qwen3AsrEngine
     private let qwen3Int8Engine: Qwen3AsrEngine
+    private let mlxPostProcessor = MLXPostProcessor()
     private let hotkeyManager = HotkeyManager()
     private let overlayController = RecordingOverlayController()
 
@@ -301,14 +302,20 @@ final class Orchestrator {
         var finalText = processedText
         let context = ContextReader.readCurrentContext()
         let llmEnabled = appState.isLLMEnabled
-        let llmAvailable = PostProcessor.isAvailable
+        let llmBackend = appState.llmBackend
+        let llmAvailable = PostProcessor.isAvailable(backend: llmBackend)
 
         if llmEnabled && llmAvailable {
             appState.phase = .processing
             do {
+                if llmBackend == .mlx {
+                    mlxPostProcessor.switchModel(to: appState.mlxModel.modelID)
+                    try await mlxPostProcessor.ensureModelLoaded()
+                }
                 finalText = try await PostProcessor.cleanup(
                     rawText: processedText, context: context,
-                    removeFillers: !appState.isFillerRemovalEnabled
+                    removeFillers: !appState.isFillerRemovalEnabled,
+                    backend: llmBackend, mlxEngine: mlxPostProcessor
                 )
             } catch {
                 finalText = processedText
@@ -321,7 +328,7 @@ final class Orchestrator {
 
         // Record and reset
         let filterRan = appState.isFillerRemovalEnabled
-        let llmRan = appState.isLLMEnabled && PostProcessor.isAvailable
+        let llmRan = appState.isLLMEnabled && PostProcessor.isAvailable(backend: llmBackend)
         let filtered = processedText != rawText ? processedText : nil
         let cleaned = finalText != (filtered ?? rawText) ? finalText : nil
         appState.addTranscription(raw: rawText, filtered: filtered, cleaned: cleaned,
@@ -543,6 +550,84 @@ final class Orchestrator {
     private static func removeModelCache(for backend: AsrBackend) {
         guard backend.needsDownload else { return }
         try? FileManager.default.removeItem(at: cacheDirectory(for: backend))
+    }
+
+    // MARK: - LLM model management
+
+    func switchMlxModel(to choice: MlxModelChoice) {
+        mlxPostProcessor.switchModel(to: choice.modelID)
+        checkLlmModelStatus()
+    }
+
+    func checkLlmModelStatus() {
+        let model = appState.mlxModel
+        if case .downloading = appState.mlxModelStatus[model] { return }
+        mlxPostProcessor.switchModel(to: model.modelID)
+        let exists = mlxPostProcessor.modelIsReady()
+        appState.mlxModelStatus[model] = exists ? .ready : .notDownloaded
+    }
+
+    private var llmDownloadTask: Task<Void, Error>?
+
+    func downloadLlmModel() {
+        let model = appState.mlxModel
+        appState.mlxModelStatus[model] = .downloading(progress: 0)
+        mlxPostProcessor.switchModel(to: model.modelID)
+
+        llmDownloadTask = Task {
+            try await mlxPostProcessor.ensureModelLoaded { [weak self] progress in
+                Task { @MainActor [weak self] in
+                    self?.appState.mlxModelStatus[model] = .downloading(progress: progress.fractionCompleted)
+                }
+            }
+        }
+
+        Task {
+            do {
+                try await llmDownloadTask?.value
+                llmDownloadTask = nil
+                appState.mlxModelStatus[model] = .ready
+            } catch is CancellationError {
+                llmDownloadTask = nil
+                deleteLlmModel()
+            } catch {
+                llmDownloadTask = nil
+                appState.mlxModelStatus[model] = .error(error.localizedDescription)
+            }
+        }
+    }
+
+    func cancelLlmDownload() {
+        llmDownloadTask?.cancel()
+    }
+
+    func deleteLlmModel() {
+        let model = appState.mlxModel
+        mlxPostProcessor.unload()
+        let cacheDir = MLXPostProcessor.modelCacheDirectory(for: model.modelID)
+        try? FileManager.default.removeItem(at: cacheDir)
+        appState.mlxModelStatus[model] = .notDownloaded
+    }
+
+    func revealLlmModelCache() {
+        let cacheDir = MLXPostProcessor.modelCacheDirectory(for: appState.mlxModel.modelID)
+        if FileManager.default.fileExists(atPath: cacheDir.path) {
+            NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: cacheDir.path)
+        } else {
+            let parent = cacheDir.deletingLastPathComponent()
+            NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: parent.path)
+        }
+    }
+
+    func deleteAllLlmModels() {
+        llmDownloadTask?.cancel()
+        llmDownloadTask = nil
+        mlxPostProcessor.unload()
+        for model in MlxModelChoice.allCases {
+            let cacheDir = MLXPostProcessor.modelCacheDirectory(for: model.modelID)
+            try? FileManager.default.removeItem(at: cacheDir)
+            appState.mlxModelStatus[model] = .notDownloaded
+        }
     }
 
     private static func fluidAudioModelsRoot() -> URL {

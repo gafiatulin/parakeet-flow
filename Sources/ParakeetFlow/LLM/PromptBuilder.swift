@@ -24,8 +24,10 @@ enum PromptBuilder {
         "as a gift scratch that as a present" → "as a present")
         - Handle voice formatting commands: "new line" → line break, "new paragraph" → double line break, \
         "comma" / "period" / "question mark" / "exclamation point" → insert that punctuation
-        - Format numbered lists when the speaker dictates items with numbers \
-        (e.g. "number one apples number two bananas" → "1. Apples\n2. Bananas")
+        - Format numbered lists when the speaker dictates items with numbers, \
+        but ALWAYS preserve surrounding sentence context \
+        (e.g. "I'm going to the store for 1 apples 2 bananas 3 oranges" → \
+        "I'm going to the store for:\n1. Apples\n2. Bananas\n3. Oranges")
         - KEEP all sentences and ideas — do NOT remove, summarize, or condense content
         - Do NOT change technical terms, proper nouns, or names
         - Do NOT add words that weren't spoken

@@ -128,9 +128,106 @@ struct GeneralSettingsView: View {
 
             Section("Post-Processing") {
                 Toggle("Enable LLM cleanup", isOn: $appState.isLLMEnabled)
-                Text("Uses Apple Intelligence on-device model to clean up transcriptions")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+
+                if appState.isLLMEnabled {
+                    Picker("LLM Backend", selection: $appState.llmBackend) {
+                        ForEach(LlmBackend.allCases, id: \.self) { backend in
+                            Text(backend.label).tag(backend)
+                        }
+                    }
+                    .onChange(of: appState.llmBackend) { _, _ in
+                        orchestrator?.checkLlmModelStatus()
+                    }
+
+                    if appState.llmBackend == .apple {
+                        Text("Uses Apple Intelligence on-device model")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if appState.llmBackend == .mlx {
+                        Picker("Model", selection: $appState.mlxModel) {
+                            ForEach(MlxModelChoice.allCases, id: \.self) { model in
+                                Text(model.label).tag(model)
+                            }
+                        }
+                        .onChange(of: appState.mlxModel) { _, newValue in
+                            orchestrator?.switchMlxModel(to: newValue)
+                        }
+
+                        HStack {
+                            switch appState.mlxModelStatus[appState.mlxModel] ?? .notDownloaded {
+                            case .ready:
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.green)
+                                Text("Model ready")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                Button("Delete", role: .destructive) {
+                                    orchestrator?.deleteLlmModel()
+                                }
+                                .font(.caption)
+                            case .notDownloaded:
+                                Image(systemName: "arrow.down.circle")
+                                    .foregroundStyle(.orange)
+                                Text("Model not downloaded")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                Button("Download") {
+                                    orchestrator?.downloadLlmModel()
+                                }
+                            case .downloading(let progress):
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack {
+                                        Text("Downloading model...")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                        Spacer()
+                                        Text("\(Int(progress * 100))%")
+                                            .font(.caption.monospacedDigit())
+                                            .foregroundStyle(.secondary)
+                                        Button("Cancel") {
+                                            orchestrator?.cancelLlmDownload()
+                                        }
+                                        .font(.caption)
+                                    }
+                                    ProgressView(value: progress)
+                                }
+                            case .error(let message):
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(.red)
+                                Text(message)
+                                    .font(.caption)
+                                    .foregroundStyle(.red)
+                                    .lineLimit(2)
+                                Spacer()
+                                Button("Retry") {
+                                    orchestrator?.downloadLlmModel()
+                                }
+                            case .notNeeded:
+                                EmptyView()
+                            }
+                        }
+
+                        HStack {
+                            Button("Show in Finder") {
+                                orchestrator?.revealLlmModelCache()
+                            }
+                            .font(.caption)
+                            Spacer()
+                            Button("Clear All LLM Models", role: .destructive) {
+                                orchestrator?.deleteAllLlmModels()
+                            }
+                            .font(.caption)
+                        }
+                    }
+                } else {
+                    Text("Uses on-device LLM to clean up transcriptions")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Section("Audio Feedback") {
@@ -153,7 +250,10 @@ struct GeneralSettingsView: View {
         }
         .formStyle(.grouped)
         .padding()
-        .onAppear { orchestrator?.checkModelStatus() }
+        .onAppear {
+            orchestrator?.checkModelStatus()
+            orchestrator?.checkLlmModelStatus()
+        }
     }
 }
 

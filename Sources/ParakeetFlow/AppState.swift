@@ -117,6 +117,40 @@ enum AsrBackend: String, CaseIterable {
     }
 }
 
+enum LlmBackend: String, CaseIterable {
+    case apple
+    case mlx
+
+    var label: String {
+        switch self {
+        case .apple: return "Apple Intelligence"
+        case .mlx: return "MLX (On-Device)"
+        }
+    }
+
+    var needsDownload: Bool {
+        self == .mlx
+    }
+}
+
+enum MlxModelChoice: String, CaseIterable {
+    case qwen35_4b = "mlx-community/Qwen3.5-4B-4bit"
+    case qwen35_2b = "mlx-community/Qwen3.5-2B-6bit"
+    case phi4mini = "mlx-community/Phi-4-mini-instruct-4bit"
+    case llama32_3b = "mlx-community/Llama-3.2-3B-Instruct-4bit"
+
+    var label: String {
+        switch self {
+        case .qwen35_4b: return "Qwen 3.5 4B (4-bit)"
+        case .qwen35_2b: return "Qwen 3.5 2B (6-bit)"
+        case .phi4mini: return "Phi-4 Mini (4-bit)"
+        case .llama32_3b: return "Llama 3.2 3B (4-bit)"
+        }
+    }
+
+    var modelID: String { rawValue }
+}
+
 enum ModelStatus: Equatable {
     case notNeeded
     case ready
@@ -165,6 +199,13 @@ final class AppState {
     var asrBackend: AsrBackend {
         didSet { UserDefaults.standard.set(asrBackend.rawValue, forKey: "asrBackend") }
     }
+    var llmBackend: LlmBackend {
+        didSet { UserDefaults.standard.set(llmBackend.rawValue, forKey: "llmBackend") }
+    }
+    var mlxModel: MlxModelChoice {
+        didSet { UserDefaults.standard.set(mlxModel.rawValue, forKey: "mlxModel") }
+    }
+    var mlxModelStatus: [MlxModelChoice: ModelStatus] = [:]
 
     init() {
         let defaults = UserDefaults.standard
@@ -177,6 +218,8 @@ final class AppState {
             "waveformColor": WaveformColor.parakeet.rawValue,
             "hotkeyChoice": HotkeyChoice.option.rawValue,
             "asrBackend": AsrBackend.apple.rawValue,
+            "llmBackend": LlmBackend.apple.rawValue,
+            "mlxModel": MlxModelChoice.qwen35_4b.rawValue,
         ])
         self.isLLMEnabled = defaults.bool(forKey: "isLLMEnabled")
         self.isFillerRemovalEnabled = defaults.bool(forKey: "isFillerRemovalEnabled")
@@ -185,6 +228,8 @@ final class AppState {
         self.waveformColor = WaveformColor(rawValue: defaults.string(forKey: "waveformColor") ?? "") ?? .bluePurple
         self.hotkeyChoice = HotkeyChoice(rawValue: defaults.string(forKey: "hotkeyChoice") ?? "") ?? .option
         self.asrBackend = AsrBackend(rawValue: defaults.string(forKey: "asrBackend") ?? "") ?? .apple
+        self.llmBackend = LlmBackend(rawValue: defaults.string(forKey: "llmBackend") ?? "") ?? .apple
+        self.mlxModel = MlxModelChoice(rawValue: defaults.string(forKey: "mlxModel") ?? "") ?? .qwen35_4b
         self.recentTranscriptions = Self.loadTranscriptions()
     }
 

@@ -13,6 +13,9 @@ packages:
   FluidAudio:
     url: https://github.com/FluidInference/FluidAudio.git
     branch: main
+  mlx-swift-lm:
+    url: https://github.com/ml-explore/mlx-swift-lm.git
+    branch: main
 
 targets:
   ParakeetFlow:
@@ -26,6 +29,8 @@ targets:
         buildPhase: resources
     dependencies:
       - package: FluidAudio
+      - package: mlx-swift-lm
+        product: MLXLLM
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.github.gafiatulin.ParakeetFlow
@@ -35,11 +40,18 @@ targets:
         GENERATE_INFOPLIST_FILE: false
         CODE_SIGN_ENTITLEMENTS: ParakeetFlow.entitlements
         ENABLE_APP_SANDBOX: false
+        ENABLE_HARDENED_RUNTIME: true
+        CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION: true
         SWIFT_VERSION: "6.2"
+        CLANG_CXX_LANGUAGE_STANDARD: c++17
+        DEAD_CODE_STRIPPING: true
+        ENABLE_USER_SCRIPT_SANDBOXING: true
+        SWIFT_EMIT_LOC_STRINGS: true
     entitlements:
       path: ParakeetFlow.entitlements
       properties:
         com.apple.security.device.audio-input: true
+        com.apple.security.network.client: true
 
 schemes:
   ParakeetFlow:
