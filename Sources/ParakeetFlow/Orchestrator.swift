@@ -129,8 +129,8 @@ final class Orchestrator {
         startPermissionPolling()
     }
 
-    /// Polls for all three permissions (Input Monitoring, Accessibility, Microphone)
-    /// every 2 seconds. Auto-starts the hotkey tap as soon as all are granted.
+    /// Polls for permissions (Accessibility, Microphone) every 2 seconds.
+    /// Auto-starts the hotkey tap as soon as all are granted.
     private func startPermissionPolling() {
         permissionPollTask?.cancel()
         permissionPollTask = Task {
@@ -151,9 +151,7 @@ final class Orchestrator {
                         return
                     }
                 } else {
-                    // Update error message to reflect what's still missing
                     var missing: [String] = []
-                    if !listen { missing.append("Input Monitoring") }
                     if !ax { missing.append("Accessibility") }
                     if !mic { missing.append("Microphone") }
                     appState.errorMessage = "Grant \(missing.joined(separator: " and ")) permission\(missing.count > 1 ? "s" : ""), then retry."

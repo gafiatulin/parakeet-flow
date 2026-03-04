@@ -170,16 +170,9 @@ struct PermissionsView: View {
 
                 PermissionRow(
                     name: "Accessibility",
-                    description: "For text insertion and context reading",
+                    description: "For global hotkey, text insertion, and context reading",
                     systemImage: "accessibility",
                     action: { openSystemSettings("Privacy_Accessibility") }
-                )
-
-                PermissionRow(
-                    name: "Input Monitoring",
-                    description: "For global hotkey (push-to-talk)",
-                    systemImage: "keyboard",
-                    action: { openSystemSettings("Privacy_ListenEvent") }
                 )
             }
         }

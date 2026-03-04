@@ -17,9 +17,6 @@ struct MenuBarView: View {
         // to avoid AppKit index mismatch warnings in menu-style MenuBarExtra.
         if appState.phase == .error {
             Menu("Troubleshoot...") {
-                Button("Open Input Monitoring") {
-                    openSystemPrefs("Privacy_ListenEvent")
-                }
                 Button("Open Accessibility") {
                     openSystemPrefs("Privacy_Accessibility")
                 }

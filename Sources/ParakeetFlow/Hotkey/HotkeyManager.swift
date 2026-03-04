@@ -18,26 +18,23 @@ final class HotkeyManager: @unchecked Sendable {
 
     @MainActor
     static func permissionStatus() -> (listenAccess: Bool, accessibility: Bool) {
-        let listen = CGPreflightListenEventAccess()
         let ax = AXIsProcessTrusted()
+        // Accessibility permission implies Input Monitoring on most macOS versions
+        let listen = ax || CGPreflightListenEventAccess()
         return (listen, ax)
     }
 
     @MainActor
     static func requestPermissions() -> String? {
-        let (listen, ax) = permissionStatus()
+        let (_, ax) = permissionStatus()
         let mic = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
 
-        if !listen {
-            CGRequestListenEventAccess()
-        }
         if !ax {
             let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary
             AXIsProcessTrustedWithOptions(opts)
         }
 
         var missing: [String] = []
-        if !listen { missing.append("Input Monitoring") }
         if !ax { missing.append("Accessibility") }
         if !mic { missing.append("Microphone") }
 
