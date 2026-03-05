@@ -1,28 +1,3 @@
-# Swift / Xcode
-.build/
-DerivedData/
-*.xcuserdata
-xcuserdata/
-*.xcworkspace
-!*.xcodeproj/project.xcworkspace/
-*.playground/playground.xcworkspace
-
-# SwiftPM
-Package.resolved
-.swiftpm/
-
-# Xcode
-*.pbxuser
-*.mode1v3
-*.mode2v3
-*.perspectivev3
-*.xccheckout
-*.moved-aside
-*.hmap
-*.ipa
-*.dSYM.zip
-*.dSYM
-
 # macOS
 .DS_Store
 .AppleDouble
