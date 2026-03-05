@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="app-icon.png" width="128" alt="ParakeetFlow icon">
+</p>
+
 # ParakeetFlow
 
 On-device voice dictation with LLM post-processing. Hold a hotkey (or tap a bubble) to record, release to transcribe and insert cleaned-up text at the cursor. All processing happens locally — no cloud APIs.
