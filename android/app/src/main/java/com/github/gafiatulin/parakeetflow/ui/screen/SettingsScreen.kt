@@ -1,0 +1,376 @@
+package com.github.gafiatulin.parakeetflow.ui.screen
+
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import android.provider.Settings
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import com.github.gafiatulin.parakeetflow.core.model.AsrModel
+import com.github.gafiatulin.parakeetflow.core.model.ModelStatus
+import com.github.gafiatulin.parakeetflow.service.DictationService
+import com.github.gafiatulin.parakeetflow.ui.component.ModelStatusCard
+import com.github.gafiatulin.parakeetflow.viewmodel.AppViewModel
+import com.github.gafiatulin.parakeetflow.viewmodel.SettingsViewModel
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsScreen(
+    onNavigateToHistory: () -> Unit,
+    onNavigateToPermissions: () -> Unit,
+    onNavigateToOnboarding: () -> Unit,
+    appViewModel: AppViewModel = hiltViewModel(),
+    settingsViewModel: SettingsViewModel = hiltViewModel()
+) {
+    val context = LocalContext.current
+    val settings by settingsViewModel.settings.collectAsState()
+    val asrStatus by appViewModel.asrStatus.collectAsState()
+    val llmStatus by appViewModel.llmStatus.collectAsState()
+    val selectedAsrModel by appViewModel.selectedAsrModel.collectAsState()
+
+    // Re-check permissions on resume (returning from system settings)
+    var refreshKey by remember { mutableIntStateOf(0) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) refreshKey++
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    val hasMic = remember(refreshKey) {
+        ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+    }
+    val hasOverlay = remember(refreshKey) { Settings.canDrawOverlays(context) }
+    val hasNotif = remember(refreshKey) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        else true
+    }
+    val missingPermissions = remember(refreshKey) {
+        buildList {
+            if (!hasMic) add("Microphone")
+            if (!hasOverlay) add("Overlay")
+            if (!hasNotif) add("Notifications")
+        }
+    }
+
+    val micPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        refreshKey++
+        if (granted) {
+            val intent = Intent(context, DictationService::class.java).apply {
+                action = DictationService.ACTION_START
+            }
+            context.startForegroundService(intent)
+        } else {
+            Toast.makeText(context, "Microphone permission required", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun startService() {
+        if (!hasMic) {
+            micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+            return
+        }
+        if (!hasOverlay) {
+            Toast.makeText(context, "Overlay permission required", Toast.LENGTH_SHORT).show()
+            onNavigateToPermissions()
+            return
+        }
+        val intent = Intent(context, DictationService::class.java).apply {
+            action = DictationService.ACTION_START
+        }
+        context.startForegroundService(intent)
+    }
+
+    fun reloadService() {
+        context.startService(Intent(context, DictationService::class.java).apply {
+            action = DictationService.ACTION_RELOAD
+        })
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("ParakeetFlow") },
+                actions = {
+                    IconButton(onClick = onNavigateToHistory) {
+                        Icon(Icons.Default.History, contentDescription = "History")
+                    }
+                    IconButton(onClick = onNavigateToPermissions) {
+                        Icon(Icons.Default.Security, contentDescription = "Permissions")
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+        ) {
+            // Permissions banner
+            if (missingPermissions.isNotEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "Missing: ${missingPermissions.joinToString(", ")}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                        FilledTonalButton(onClick = onNavigateToPermissions) { Text("Fix") }
+                    }
+                }
+            }
+
+            // Service control
+            Card(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Dictation Service", style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    val asrReady = asrStatus is ModelStatus.Ready
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = { startService() },
+                            enabled = asrReady
+                        ) { Text("Start") }
+                        OutlinedButton(onClick = {
+                            val intent = Intent(context, DictationService::class.java).apply {
+                                action = DictationService.ACTION_STOP
+                            }
+                            context.startService(intent)
+                        }) { Text("Stop") }
+                    }
+                }
+            }
+
+            // Models
+            Text(
+                "Models",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+
+            Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Speech Recognition", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        "${selectedAsrModel.description} (${selectedAsrModel.sizeLabel})",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                        AsrModel.entries.forEachIndexed { index, model ->
+                            SegmentedButton(
+                                selected = selectedAsrModel == model,
+                                onClick = {
+                                    appViewModel.selectAsrModel(model)
+                                    reloadService()
+                                },
+                                shape = SegmentedButtonDefaults.itemShape(
+                                    index = index,
+                                    count = AsrModel.entries.size
+                                )
+                            ) {
+                                Text(model.displayName.removePrefix("Parakeet TDT 0.6B "))
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    when (val status = asrStatus) {
+                        is ModelStatus.NotDownloaded -> {
+                            Button(onClick = { appViewModel.downloadAsrModel() }) { Text("Download") }
+                        }
+                        is ModelStatus.Downloading -> {
+                            LinearProgressIndicator(
+                                progress = { status.progress },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "${(status.progress * 100).toInt()}%",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                TextButton(onClick = { appViewModel.cancelAsrDownload() }) { Text("Cancel") }
+                            }
+                        }
+                        is ModelStatus.Ready -> {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("\u2713 Ready", color = MaterialTheme.colorScheme.primary)
+                                TextButton(onClick = { appViewModel.deleteAsrModel() }) {
+                                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                                }
+                            }
+                        }
+                        is ModelStatus.Error -> {
+                            Text(
+                                "Error: ${status.message}",
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            TextButton(onClick = { appViewModel.downloadAsrModel() }) { Text("Retry") }
+                        }
+                    }
+                }
+            }
+
+            ModelStatusCard(
+                title = "Qwen3 0.6B",
+                description = "Text cleanup model (~586 MB)",
+                status = llmStatus,
+                onDownload = { appViewModel.downloadLlmModel() },
+                onCancel = { appViewModel.cancelLlmDownload() },
+                onDelete = { appViewModel.deleteLlmModel() }
+            )
+
+            // Settings toggles
+            Text(
+                "Processing",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+
+            val llmReady = llmStatus is ModelStatus.Ready
+            ListItem(
+                headlineContent = { Text("LLM Post-Processing") },
+                supportingContent = {
+                    Text(
+                        if (llmReady) "Clean up grammar and punctuation with AI"
+                        else "Download LLM model first"
+                    )
+                },
+                trailingContent = {
+                    Switch(
+                        checked = settings.llmEnabled && llmReady,
+                        enabled = llmReady,
+                        onCheckedChange = {
+                            settingsViewModel.setLlmEnabled(it)
+                            reloadService()
+                        }
+                    )
+                }
+            )
+            ListItem(
+                headlineContent = { Text("LLM on GPU") },
+                supportingContent = { Text("Faster but uses more battery") },
+                trailingContent = {
+                    Switch(
+                        checked = settings.llmGpu,
+                        enabled = settings.llmEnabled && llmReady,
+                        onCheckedChange = {
+                            settingsViewModel.setLlmGpu(it)
+                            reloadService()
+                        }
+                    )
+                }
+            )
+            ListItem(
+                headlineContent = { Text("Filler Word Filter") },
+                supportingContent = { Text("Remove um, uh, like, etc.") },
+                trailingContent = {
+                    Switch(
+                        checked = settings.fillerFilterEnabled,
+                        onCheckedChange = {
+                            settingsViewModel.setFillerFilterEnabled(it)
+                            reloadService()
+                        }
+                    )
+                }
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            Text(
+                "Bubble",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+
+            ListItem(
+                headlineContent = { Text("Lingering Bubble") },
+                supportingContent = { Text("Keep bubble visible when no text field is focused") },
+                trailingContent = {
+                    Switch(
+                        checked = settings.lingeringBubble,
+                        onCheckedChange = { settingsViewModel.setLingeringBubble(it) }
+                    )
+                }
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            Text(
+                "Feedback",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+
+            ListItem(
+                headlineContent = { Text("Haptic Feedback") },
+                trailingContent = {
+                    Switch(
+                        checked = settings.hapticFeedback,
+                        onCheckedChange = { settingsViewModel.setHapticFeedback(it) }
+                    )
+                }
+            )
+            ListItem(
+                headlineContent = { Text("Audio Feedback") },
+                trailingContent = {
+                    Switch(
+                        checked = settings.audioFeedback,
+                        onCheckedChange = { settingsViewModel.setAudioFeedback(it) }
+                    )
+                }
+            )
+        }
+    }
+}

@@ -1,0 +1,49 @@
+package com.github.gafiatulin.parakeetflow.viewmodel
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.github.gafiatulin.parakeetflow.core.model.UserSettings
+import com.github.gafiatulin.parakeetflow.core.preferences.PreferencesDataStore
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+@HiltViewModel
+class SettingsViewModel @Inject constructor(
+    private val preferencesDataStore: PreferencesDataStore
+) : ViewModel() {
+
+    val settings: StateFlow<UserSettings> = preferencesDataStore.settings
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UserSettings())
+
+    fun setLlmEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferencesDataStore.setLlmEnabled(enabled) }
+    }
+
+    fun setFillerFilterEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferencesDataStore.setFillerFilterEnabled(enabled) }
+    }
+
+    fun setHapticFeedback(enabled: Boolean) {
+        viewModelScope.launch { preferencesDataStore.setHapticFeedback(enabled) }
+    }
+
+    fun setAudioFeedback(enabled: Boolean) {
+        viewModelScope.launch { preferencesDataStore.setAudioFeedback(enabled) }
+    }
+
+    fun setLlmGpu(enabled: Boolean) {
+        viewModelScope.launch { preferencesDataStore.setLlmGpu(enabled) }
+    }
+
+    fun setLingeringBubble(enabled: Boolean) {
+        viewModelScope.launch { preferencesDataStore.setLingeringBubble(enabled) }
+    }
+
+    fun setHfToken(token: String) {
+        viewModelScope.launch { preferencesDataStore.setHfToken(token) }
+    }
+}

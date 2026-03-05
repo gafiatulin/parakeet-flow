@@ -1,0 +1,99 @@
+package com.github.gafiatulin.parakeetflow.core.preferences
+
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import com.github.gafiatulin.parakeetflow.core.model.BubblePosition
+import com.github.gafiatulin.parakeetflow.core.model.UserSettings
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import javax.inject.Inject
+import javax.inject.Singleton
+
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+
+@Singleton
+class PreferencesDataStore @Inject constructor(
+    @param:ApplicationContext private val context: Context
+) {
+    private object Keys {
+        val LLM_ENABLED = booleanPreferencesKey("llm_enabled")
+        val FILLER_FILTER_ENABLED = booleanPreferencesKey("filler_filter_enabled")
+        val HAPTIC_FEEDBACK = booleanPreferencesKey("haptic_feedback")
+        val AUDIO_FEEDBACK = booleanPreferencesKey("audio_feedback")
+        val BUBBLE_POSITION_X = intPreferencesKey("bubble_position_x")
+        val BUBBLE_POSITION_Y = intPreferencesKey("bubble_position_y")
+        val AUTO_CAPITALIZE = booleanPreferencesKey("auto_capitalize")
+        val AUTO_PUNCTUATION = booleanPreferencesKey("auto_punctuation")
+        val LLM_GPU = booleanPreferencesKey("llm_gpu")
+        val LINGERING_BUBBLE = booleanPreferencesKey("lingering_bubble")
+        val HF_TOKEN = stringPreferencesKey("hf_token")
+    }
+
+    val settings: Flow<UserSettings> = context.dataStore.data.map { prefs ->
+        UserSettings(
+            llmEnabled = prefs[Keys.LLM_ENABLED] ?: true,
+            fillerFilterEnabled = prefs[Keys.FILLER_FILTER_ENABLED] ?: true,
+            hapticFeedback = prefs[Keys.HAPTIC_FEEDBACK] ?: true,
+            audioFeedback = prefs[Keys.AUDIO_FEEDBACK] ?: true,
+            bubblePosition = BubblePosition(
+                x = prefs[Keys.BUBBLE_POSITION_X] ?: -1,
+                y = prefs[Keys.BUBBLE_POSITION_Y] ?: -1
+            ),
+            autoCapitalize = prefs[Keys.AUTO_CAPITALIZE] ?: true,
+            autoPunctuation = prefs[Keys.AUTO_PUNCTUATION] ?: true,
+            llmGpu = prefs[Keys.LLM_GPU] ?: true,
+            lingeringBubble = prefs[Keys.LINGERING_BUBBLE] ?: false,
+            hfToken = prefs[Keys.HF_TOKEN] ?: ""
+        )
+    }
+
+    suspend fun setLlmEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.LLM_ENABLED] = enabled }
+    }
+
+    suspend fun setFillerFilterEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.FILLER_FILTER_ENABLED] = enabled }
+    }
+
+    suspend fun setHapticFeedback(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.HAPTIC_FEEDBACK] = enabled }
+    }
+
+    suspend fun setAudioFeedback(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.AUDIO_FEEDBACK] = enabled }
+    }
+
+    suspend fun setBubblePosition(position: BubblePosition) {
+        context.dataStore.edit {
+            it[Keys.BUBBLE_POSITION_X] = position.x
+            it[Keys.BUBBLE_POSITION_Y] = position.y
+        }
+    }
+
+    suspend fun setAutoCapitalize(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.AUTO_CAPITALIZE] = enabled }
+    }
+
+    suspend fun setAutoPunctuation(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.AUTO_PUNCTUATION] = enabled }
+    }
+
+    suspend fun setLlmGpu(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.LLM_GPU] = enabled }
+    }
+
+    suspend fun setLingeringBubble(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.LINGERING_BUBBLE] = enabled }
+    }
+
+    suspend fun setHfToken(token: String) {
+        context.dataStore.edit { it[Keys.HF_TOKEN] = token }
+    }
+}

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ParakeetFlow</string>
+    <string name="accessibility_service_description">ParakeetFlow uses accessibility to read the current text field context and insert dictated text into any app.</string>
+    <string name="notification_channel_name">Dictation</string>
+    <string name="notification_channel_description">Shows when ParakeetFlow is actively listening</string>
+    <string name="notification_recording">Recording…</string>
+    <string name="notification_processing">Processing speech…</string>
+    <string name="notification_tap_to_open">Tap to open ParakeetFlow</string>
+</resources>
