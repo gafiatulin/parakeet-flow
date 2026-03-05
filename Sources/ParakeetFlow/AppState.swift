@@ -134,14 +134,12 @@ enum LlmBackend: String, CaseIterable {
 }
 
 enum MlxModelChoice: String, CaseIterable {
-    case qwen35_4b = "mlx-community/Qwen3.5-4B-4bit"
     case qwen35_2b = "mlx-community/Qwen3.5-2B-6bit"
     case phi4mini = "mlx-community/Phi-4-mini-instruct-4bit"
     case llama32_3b = "mlx-community/Llama-3.2-3B-Instruct-4bit"
 
     var label: String {
         switch self {
-        case .qwen35_4b: return "Qwen 3.5 4B (4-bit)"
         case .qwen35_2b: return "Qwen 3.5 2B (6-bit)"
         case .phi4mini: return "Phi-4 Mini (4-bit)"
         case .llama32_3b: return "Llama 3.2 3B (4-bit)"
@@ -219,7 +217,7 @@ final class AppState {
             "hotkeyChoice": HotkeyChoice.option.rawValue,
             "asrBackend": AsrBackend.apple.rawValue,
             "llmBackend": LlmBackend.apple.rawValue,
-            "mlxModel": MlxModelChoice.qwen35_4b.rawValue,
+            "mlxModel": MlxModelChoice.qwen35_2b.rawValue,
         ])
         self.isLLMEnabled = defaults.bool(forKey: "isLLMEnabled")
         self.isFillerRemovalEnabled = defaults.bool(forKey: "isFillerRemovalEnabled")
@@ -229,7 +227,7 @@ final class AppState {
         self.hotkeyChoice = HotkeyChoice(rawValue: defaults.string(forKey: "hotkeyChoice") ?? "") ?? .option
         self.asrBackend = AsrBackend(rawValue: defaults.string(forKey: "asrBackend") ?? "") ?? .apple
         self.llmBackend = LlmBackend(rawValue: defaults.string(forKey: "llmBackend") ?? "") ?? .apple
-        self.mlxModel = MlxModelChoice(rawValue: defaults.string(forKey: "mlxModel") ?? "") ?? .qwen35_4b
+        self.mlxModel = MlxModelChoice(rawValue: defaults.string(forKey: "mlxModel") ?? "") ?? .qwen35_2b
         self.recentTranscriptions = Self.loadTranscriptions()
     }
 

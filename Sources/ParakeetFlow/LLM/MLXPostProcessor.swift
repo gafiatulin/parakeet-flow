@@ -12,7 +12,7 @@ final class MLXPostProcessor: @unchecked Sendable {
     /// Whether the model is currently loaded in memory.
     var isLoaded: Bool { container != nil }
 
-    init(modelID: String = MlxModelChoice.qwen35_4b.modelID) {
+    init(modelID: String = MlxModelChoice.qwen35_2b.modelID) {
         self.modelID = modelID
     }
 
