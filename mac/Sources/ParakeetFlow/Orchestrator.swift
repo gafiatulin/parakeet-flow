@@ -26,6 +26,7 @@ final class Orchestrator {
     private var isHandsFreeMode = false
     private var isRecordingOrPending = false
     private let holdThreshold: Double = 0.4
+    private var modelUnloadTask: Task<Void, Never>?
 
     init(appState: AppState, modelContainer: ModelContainer) {
         self.appState = appState
@@ -65,6 +66,7 @@ final class Orchestrator {
                     }
 
                     // Start recording — show feedback immediately
+                    self.modelUnloadTask?.cancel()
                     self.isRecordingOrPending = true
                     self.appState.phase = .recording
                     self.appState.partialTranscription = nil
@@ -359,6 +361,7 @@ final class Orchestrator {
             dictionaryRan: dictionaryRan, llmRan: llmRan
         )
         appState.phase = .idle
+        scheduleModelUnload()
     }
 
     private func cancelRecording() async {
@@ -714,5 +717,28 @@ final class Orchestrator {
             appState.phase = .idle
             appState.errorMessage = nil
         }
+    }
+
+    // MARK: - Model unloading after inactivity
+
+    /// Reschedule the inactivity timer. Call after each transcription completes.
+    private func scheduleModelUnload() {
+        modelUnloadTask?.cancel()
+        let minutes = appState.modelUnloadMinutes
+        guard minutes > 0 else { return }
+
+        modelUnloadTask = Task {
+            try? await Task.sleep(for: .seconds(minutes * 60))
+            guard !Task.isCancelled else { return }
+            unloadAllModels()
+        }
+    }
+
+    private func unloadAllModels() {
+        if parakeetV2Engine.isLoaded { parakeetV2Engine.unload() }
+        if parakeetEngine.isLoaded { parakeetEngine.unload() }
+        if qwen3Engine.isLoaded { qwen3Engine.unload() }
+        if qwen3Int8Engine.isLoaded { qwen3Int8Engine.unload() }
+        if mlxPostProcessor.isLoaded { mlxPostProcessor.unload() }
     }
 }

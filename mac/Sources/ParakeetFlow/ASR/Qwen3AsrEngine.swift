@@ -31,6 +31,14 @@ final class Qwen3AsrEngine: @unchecked Sendable {
         manager = mgr
     }
 
+    /// Whether a model is currently loaded in memory.
+    var isLoaded: Bool { manager != nil }
+
+    /// Release the model from memory.
+    func unload() {
+        manager = nil
+    }
+
     /// Begin a new recording session — clears accumulated samples.
     func startSession() {
         samples.withLock { $0.removeAll(keepingCapacity: true) }

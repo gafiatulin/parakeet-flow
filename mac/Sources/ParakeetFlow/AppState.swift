@@ -216,6 +216,10 @@ final class AppState {
     var dictionaryThreshold: Double {
         didSet { UserDefaults.standard.set(dictionaryThreshold, forKey: "dictionaryThreshold") }
     }
+    /// Minutes of inactivity before unloading models from memory. 0 = never unload.
+    var modelUnloadMinutes: Int {
+        didSet { UserDefaults.standard.set(modelUnloadMinutes, forKey: "modelUnloadMinutes") }
+    }
     var isAudioFeedbackEnabled: Bool {
         didSet { UserDefaults.standard.set(isAudioFeedbackEnabled, forKey: "isAudioFeedbackEnabled") }
     }
@@ -250,6 +254,7 @@ final class AppState {
             "fillerWords": FillerWordFilter.defaultFillerWords,
             "isDictionaryEnabled": true,
             "dictionaryThreshold": DictionaryCorrector.defaultThreshold,
+            "modelUnloadMinutes": 10,
             "isAudioFeedbackEnabled": true,
             "isRecordingOverlayEnabled": false,
             "waveformColor": WaveformColor.parakeet.rawValue,
@@ -265,6 +270,7 @@ final class AppState {
         self.fillerWords = loadedFillerWords
         self.isDictionaryEnabled = defaults.bool(forKey: "isDictionaryEnabled")
         self.dictionaryThreshold = defaults.double(forKey: "dictionaryThreshold")
+        self.modelUnloadMinutes = defaults.integer(forKey: "modelUnloadMinutes")
         self.isAudioFeedbackEnabled = defaults.bool(forKey: "isAudioFeedbackEnabled")
         self.isRecordingOverlayEnabled = defaults.bool(forKey: "isRecordingOverlayEnabled")
         self.waveformColor = WaveformColor(rawValue: defaults.string(forKey: "waveformColor") ?? "") ?? .bluePurple

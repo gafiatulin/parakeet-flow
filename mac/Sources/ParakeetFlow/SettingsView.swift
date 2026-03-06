@@ -267,6 +267,19 @@ struct GeneralSettingsView: View {
                 }
             }
 
+            Section("Memory") {
+                Picker("Unload models after", selection: $appState.modelUnloadMinutes) {
+                    Text("Never").tag(0)
+                    Text("5 minutes").tag(5)
+                    Text("10 minutes").tag(10)
+                    Text("30 minutes").tag(30)
+                    Text("1 hour").tag(60)
+                }
+                Text("Frees RAM by unloading ASR and LLM models after inactivity. First use after unload will be slower while models reload. Does not apply to Apple Intelligence.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Audio Feedback") {
                 Toggle("Play sounds on start/stop", isOn: $appState.isAudioFeedbackEnabled)
             }

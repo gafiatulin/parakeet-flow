@@ -43,6 +43,14 @@ final class ParakeetEngine: @unchecked Sendable {
         samples.withLock { $0.append(contentsOf: chunk) }
     }
 
+    /// Whether a model is currently loaded in memory.
+    var isLoaded: Bool { asrManager != nil }
+
+    /// Release the model from memory.
+    func unload() {
+        asrManager = nil
+    }
+
     /// Finish recording and run batch transcription. Returns the transcribed text.
     func finishSession() async throws -> String {
         guard let asrManager else {
