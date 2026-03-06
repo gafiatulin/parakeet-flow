@@ -11,7 +11,10 @@ Hold a hotkey to record, release to transcribe and insert cleaned-up text at the
 - **Push-to-talk and hands-free** hotkey modes
 - **Context-aware** prompts using the active app and selected text
 - **Filler word removal** (um, uh, like, etc.)
+- **Custom dictionary** with fuzzy + phonetic matching (Levenshtein + Soundex) for names, technical terms, and frequently misheard words
+
 - **Recording overlay** with animated waveform indicator
+- **Transcription history** stored in SwiftData with full pipeline visibility
 
 ## Requirements
 
@@ -22,10 +25,11 @@ Hold a hotkey to record, release to transcribe and insert cleaned-up text at the
 ## Build
 
 ```
-swift build
+xcodegen generate
+xcodebuild build -scheme ParakeetFlow
 ```
 
-Or open `ParakeetFlow.xcodeproj` in Xcode.
+Or open `ParakeetFlow.xcodeproj` in Xcode. Note: `swift build` does not work because SwiftData `@Model` macros require the Xcode build system.
 
 ## Usage
 

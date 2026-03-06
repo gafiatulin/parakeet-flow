@@ -16,22 +16,23 @@ enum PostProcessor {
     /// Clean up raw transcription text using the selected LLM backend.
     static func cleanup(
         rawText: String, context: AppContext, removeFillers: Bool = true,
+        dictionaryWords: [String] = [],
         backend: LlmBackend, mlxEngine: MLXPostProcessor? = nil
     ) async throws -> String {
         switch backend {
         case .apple:
-            return try await cleanupWithApple(rawText: rawText, context: context, removeFillers: removeFillers)
+            return try await cleanupWithApple(rawText: rawText, context: context, removeFillers: removeFillers, dictionaryWords: dictionaryWords)
         case .mlx:
             guard let mlxEngine else {
                 throw MLXPostProcessorError.notLoaded
             }
-            return try await mlxEngine.cleanup(rawText: rawText, context: context, removeFillers: removeFillers)
+            return try await mlxEngine.cleanup(rawText: rawText, context: context, removeFillers: removeFillers, dictionaryWords: dictionaryWords)
         }
     }
 
     /// Apple Intelligence cleanup via FoundationModels.
-    private static func cleanupWithApple(rawText: String, context: AppContext, removeFillers: Bool) async throws -> String {
-        let instructions = PromptBuilder.buildSystemPrompt(context: context, removeFillers: removeFillers)
+    private static func cleanupWithApple(rawText: String, context: AppContext, removeFillers: Bool, dictionaryWords: [String]) async throws -> String {
+        let instructions = PromptBuilder.buildSystemPrompt(context: context, removeFillers: removeFillers, dictionaryWords: dictionaryWords)
         let session = LanguageModelSession(instructions: instructions)
 
         let response = try await session.respond(

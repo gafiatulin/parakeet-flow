@@ -15,9 +15,10 @@ On-device voice dictation with LLM post-processing. Hold a hotkey (or tap a bubb
 - **Voice formatting commands** — "new line", "new paragraph", "comma", "period", etc. are converted to punctuation (macOS)
 - **Numbered list formatting** — dictate items with numbers and they're formatted as a list (macOS)
 - **Filler word removal** — strips um, uh, like, you know, basically, etc. via regex set-match before LLM, and again during LLM cleanup (toggleable)
+- **Custom dictionary** — add names, technical terms, or frequently misheard words; fuzzy matching (Levenshtein + Soundex) auto-corrects ASR errors before LLM cleanup, and dictionary words are injected into the LLM prompt as preferred spellings (macOS)
 - **Context-aware cleanup** — reads the active app, window title, and surrounding text; adapts tone (casual for Slack, formal for Mail, technical for Xcode) (macOS)
 - **Recording overlay** — animated waveform indicator while recording (macOS)
-- **Transcription history** — log of past dictations with full pipeline visibility (raw ASR → filtered → LLM output)
+- **Transcription history** — log of past dictations with full pipeline visibility (raw ASR → filtered → dictionary → LLM output), stored in SwiftData (macOS)
 
 ## Platforms
 
@@ -26,7 +27,7 @@ On-device voice dictation with LLM post-processing. Hold a hotkey (or tap a bubb
 Menu bar app for macOS 26+ (Tahoe). Uses Apple SpeechAnalyzer for streaming ASR and Apple FoundationModels for LLM cleanup. Alternative backends via FluidAudio (Parakeet TDT) and MLX (Qwen, Phi, Llama).
 
 ```
-cd mac && swift build
+cd mac && xcodegen generate && xcodebuild build -scheme ParakeetFlow
 ```
 
 ### [Android](android/)
@@ -42,8 +43,8 @@ cd android && ./gradlew assembleRelease -x lintVitalRelease
 Both platforms share the same pipeline:
 
 ```
-Audio capture -> ASR transcription -> Filler word filter -> LLM cleanup -> Text insertion
-                                        (optional)          (optional)
+Audio capture -> ASR -> Filler filter -> Dictionary correction -> LLM cleanup -> Text insertion
+                         (optional)         (optional)             (optional)
 ```
 
 | Component | macOS | Android |

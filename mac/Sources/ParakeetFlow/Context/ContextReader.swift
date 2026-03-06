@@ -10,6 +10,7 @@ enum ContextReader {
 
         return AppContext(
             appName: appName,
+            appBundleIdentifier: app?.bundleIdentifier,
             windowTitle: windowTitle,
             surroundingText: surroundingText
         )

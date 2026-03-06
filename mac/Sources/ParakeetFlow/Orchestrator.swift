@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import AVFoundation
 import FluidAudio
 
@@ -7,6 +8,7 @@ import FluidAudio
 @Observable
 final class Orchestrator {
     let appState: AppState
+    private let modelContainer: ModelContainer
     private let audioCapture = AudioCaptureManager()
     private let transcriptionEngine = TranscriptionEngine()
     private let parakeetV2Engine: ParakeetEngine
@@ -25,8 +27,9 @@ final class Orchestrator {
     private var isRecordingOrPending = false
     private let holdThreshold: Double = 0.4
 
-    init(appState: AppState) {
+    init(appState: AppState, modelContainer: ModelContainer) {
         self.appState = appState
+        self.modelContainer = modelContainer
         self.parakeetV2Engine = ParakeetEngine(version: .v2)
         self.parakeetEngine = ParakeetEngine(version: .v3)
         self.qwen3Engine = Qwen3AsrEngine(variant: .f32)
@@ -294,12 +297,26 @@ final class Orchestrator {
 
         // Filler word removal
         var processedText = rawText
-        if appState.isFillerRemovalEnabled {
+        let filterRan = appState.isFillerRemovalEnabled
+        if filterRan {
             processedText = FillerWordFilter.removeFillersFromText(processedText)
         }
 
+        // Dictionary correction (fuzzy + phonetic matching)
+        var dictCorrectedText = processedText
+        let dictionaryRan = appState.isDictionaryEnabled
+        if dictionaryRan {
+            let words = fetchDictionaryWords()
+            if !words.isEmpty {
+                dictCorrectedText = DictionaryCorrector.applyCorrections(
+                    processedText, dictionary: words,
+                    threshold: appState.dictionaryThreshold
+                )
+            }
+        }
+
         // LLM cleanup (if enabled and available)
-        var finalText = processedText
+        var finalText = dictCorrectedText
         let context = ContextReader.readCurrentContext()
         let llmEnabled = appState.isLLMEnabled
         let llmBackend = appState.llmBackend
@@ -312,13 +329,15 @@ final class Orchestrator {
                     mlxPostProcessor.switchModel(to: appState.mlxModel.modelID)
                     try await mlxPostProcessor.ensureModelLoaded()
                 }
+                let dictionaryWords = dictionaryRan ? fetchDictionaryWords() : []
                 finalText = try await PostProcessor.cleanup(
-                    rawText: processedText, context: context,
-                    removeFillers: !appState.isFillerRemovalEnabled,
+                    rawText: dictCorrectedText, context: context,
+                    removeFillers: !filterRan,
+                    dictionaryWords: dictionaryWords,
                     backend: llmBackend, mlxEngine: mlxPostProcessor
                 )
             } catch {
-                finalText = processedText
+                finalText = dictCorrectedText
             }
         }
 
@@ -326,13 +345,17 @@ final class Orchestrator {
         appState.phase = .inserting
         await TextInserter.insert(finalText)
 
-        // Record and reset
-        let filterRan = appState.isFillerRemovalEnabled
-        let llmRan = appState.isLLMEnabled && PostProcessor.isAvailable(backend: llmBackend)
+        // Record to SwiftData
+        let llmRan = llmEnabled && llmAvailable
         let filtered = processedText != rawText ? processedText : nil
-        let cleaned = finalText != (filtered ?? rawText) ? finalText : nil
-        appState.addTranscription(raw: rawText, filtered: filtered, cleaned: cleaned,
-                                  context: context, filterRan: filterRan, llmRan: llmRan)
+        let dictCorrected = dictCorrectedText != processedText ? dictCorrectedText : nil
+        let cleaned = finalText != (dictCorrected ?? filtered ?? rawText) ? finalText : nil
+        saveTranscription(
+            rawText: rawText, filteredText: filtered,
+            dictionaryCorrectedText: dictCorrected, cleanedText: cleaned,
+            context: context, filterRan: filterRan,
+            dictionaryRan: dictionaryRan, llmRan: llmRan
+        )
         appState.phase = .idle
     }
 
@@ -648,6 +671,39 @@ final class Orchestrator {
             }
         }
         return total
+    }
+
+    // MARK: - Dictionary & History helpers
+
+    private func fetchDictionaryWords() -> [String] {
+        let context = ModelContext(modelContainer)
+        let descriptor = FetchDescriptor<DictionaryWord>()
+        return (try? context.fetch(descriptor).map(\.word)) ?? []
+    }
+
+    private func saveTranscription(
+        rawText: String, filteredText: String?,
+        dictionaryCorrectedText: String?, cleanedText: String?,
+        context: AppContext, filterRan: Bool,
+        dictionaryRan: Bool, llmRan: Bool
+    ) {
+        let ctx = ModelContext(modelContainer)
+        let entry = TranscriptionEntry(
+            timestamp: .now,
+            rawText: rawText,
+            filteredText: filteredText,
+            dictionaryCorrectedText: dictionaryCorrectedText,
+            cleanedText: cleanedText,
+            appName: context.appName,
+            appBundleIdentifier: context.appBundleIdentifier,
+            windowTitle: context.windowTitle,
+            surroundingText: context.surroundingText,
+            filterRan: filterRan,
+            dictionaryRan: dictionaryRan,
+            llmRan: llmRan
+        )
+        ctx.insert(entry)
+        try? ctx.save()
     }
 
     private func resetAfterDelay() {

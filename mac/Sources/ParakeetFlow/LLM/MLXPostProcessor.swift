@@ -32,12 +32,12 @@ final class MLXPostProcessor: @unchecked Sendable {
     }
 
     /// Clean up raw transcription text using the MLX model.
-    func cleanup(rawText: String, context: AppContext, removeFillers: Bool = true) async throws -> String {
+    func cleanup(rawText: String, context: AppContext, removeFillers: Bool = true, dictionaryWords: [String] = []) async throws -> String {
         guard let container else {
             throw MLXPostProcessorError.notLoaded
         }
 
-        var instructions = PromptBuilder.buildSystemPrompt(context: context, removeFillers: removeFillers)
+        var instructions = PromptBuilder.buildSystemPrompt(context: context, removeFillers: removeFillers, dictionaryWords: dictionaryWords)
         // Qwen models support /no_think to disable chain-of-thought
         if modelID.lowercased().contains("qwen") {
             instructions += "\n/no_think"

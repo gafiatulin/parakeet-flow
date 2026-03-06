@@ -1,11 +1,12 @@
 struct AppContext: Codable {
     let appName: String?
+    let appBundleIdentifier: String?
     let windowTitle: String?
     let surroundingText: String?
 }
 
 enum PromptBuilder {
-    static func buildSystemPrompt(context: AppContext, removeFillers: Bool = true) -> String {
+    static func buildSystemPrompt(context: AppContext, removeFillers: Bool = true, dictionaryWords: [String] = []) -> String {
         var prompt = """
         You are a dictation post-processor. The user will send you raw voice-transcribed text. \
         Your ONLY job is to clean it up and return the corrected version. \
@@ -49,6 +50,12 @@ enum PromptBuilder {
 
         if let windowTitle = context.windowTitle {
             prompt += "\nWindow: \(windowTitle)"
+        }
+
+        if !dictionaryWords.isEmpty {
+            let wordList = dictionaryWords.joined(separator: ", ")
+            prompt += "\n\nDictionary: The following words/phrases are known correct spellings. "
+            prompt += "If any word in the dictation sounds similar, use the dictionary spelling: \(wordList)"
         }
 
         return prompt

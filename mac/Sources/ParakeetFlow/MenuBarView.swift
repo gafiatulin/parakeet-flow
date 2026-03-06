@@ -34,7 +34,6 @@ struct MenuBarView: View {
             NSApp.activate()
             openWindow(id: "history")
         }
-        .disabled(appState.recentTranscriptions.isEmpty)
 
         Button("Settings...") {
             NSApp.activate()

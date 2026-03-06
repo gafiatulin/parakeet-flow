@@ -101,11 +101,11 @@ enum AsrBackend: String, CaseIterable {
 
     var label: String {
         switch self {
-        case .apple: return "Apple (Streaming)"
-        case .parakeetV2: return "Parakeet TDT v2 (Batch, EN)"
-        case .parakeet: return "Parakeet TDT v3 (Batch)"
-        case .qwen3Asr: return "Qwen3 ASR (Batch)"
-        case .qwen3AsrInt8: return "Qwen3 ASR Int8 (Batch)"
+        case .apple: return "Apple Intelligence"
+        case .parakeetV2: return "Parakeet TDT v2 (EN)"
+        case .parakeet: return "Parakeet TDT v3 (Multilingual)"
+        case .qwen3Asr: return "Qwen3 ASR"
+        case .qwen3AsrInt8: return "Qwen3 ASR Int8"
         }
     }
 
@@ -171,9 +171,6 @@ final class AppState {
     var phase: AppPhase = .idle
     var modelStatusByBackend: [AsrBackend: ModelStatus] = [:]
     var partialTranscription: String?
-    var lastTranscription: String?
-    var lastCleanedText: String?
-    var recentTranscriptions: [TranscriptionRecord] = []
     var errorMessage: String?
 
     var isLLMEnabled: Bool {
@@ -181,6 +178,12 @@ final class AppState {
     }
     var isFillerRemovalEnabled: Bool {
         didSet { UserDefaults.standard.set(isFillerRemovalEnabled, forKey: "isFillerRemovalEnabled") }
+    }
+    var isDictionaryEnabled: Bool {
+        didSet { UserDefaults.standard.set(isDictionaryEnabled, forKey: "isDictionaryEnabled") }
+    }
+    var dictionaryThreshold: Double {
+        didSet { UserDefaults.standard.set(dictionaryThreshold, forKey: "dictionaryThreshold") }
     }
     var isAudioFeedbackEnabled: Bool {
         didSet { UserDefaults.standard.set(isAudioFeedbackEnabled, forKey: "isAudioFeedbackEnabled") }
@@ -207,10 +210,11 @@ final class AppState {
 
     init() {
         let defaults = UserDefaults.standard
-        // Register defaults for first launch
         defaults.register(defaults: [
             "isLLMEnabled": true,
             "isFillerRemovalEnabled": true,
+            "isDictionaryEnabled": true,
+            "dictionaryThreshold": DictionaryCorrector.defaultThreshold,
             "isAudioFeedbackEnabled": true,
             "isRecordingOverlayEnabled": false,
             "waveformColor": WaveformColor.parakeet.rawValue,
@@ -221,6 +225,8 @@ final class AppState {
         ])
         self.isLLMEnabled = defaults.bool(forKey: "isLLMEnabled")
         self.isFillerRemovalEnabled = defaults.bool(forKey: "isFillerRemovalEnabled")
+        self.isDictionaryEnabled = defaults.bool(forKey: "isDictionaryEnabled")
+        self.dictionaryThreshold = defaults.double(forKey: "dictionaryThreshold")
         self.isAudioFeedbackEnabled = defaults.bool(forKey: "isAudioFeedbackEnabled")
         self.isRecordingOverlayEnabled = defaults.bool(forKey: "isRecordingOverlayEnabled")
         self.waveformColor = WaveformColor(rawValue: defaults.string(forKey: "waveformColor") ?? "") ?? .bluePurple
@@ -228,7 +234,6 @@ final class AppState {
         self.asrBackend = AsrBackend(rawValue: defaults.string(forKey: "asrBackend") ?? "") ?? .apple
         self.llmBackend = LlmBackend(rawValue: defaults.string(forKey: "llmBackend") ?? "") ?? .apple
         self.mlxModel = MlxModelChoice(rawValue: defaults.string(forKey: "mlxModel") ?? "") ?? .qwen35_2b
-        self.recentTranscriptions = Self.loadTranscriptions()
     }
 
     var isLaunchAtLoginEnabled: Bool {
@@ -254,75 +259,5 @@ final class AppState {
         case .inserting: return "doc.on.clipboard"
         case .error: return "exclamationmark.triangle"
         }
-    }
-
-    func addTranscription(raw: String, filtered: String?, cleaned: String?,
-                          context: AppContext?, filterRan: Bool, llmRan: Bool) {
-        let record = TranscriptionRecord(
-            timestamp: Date(),
-            rawText: raw,
-            filteredText: filtered,
-            cleanedText: cleaned,
-            context: context,
-            filterRan: filterRan,
-            llmRan: llmRan
-        )
-        recentTranscriptions.insert(record, at: 0)
-        if recentTranscriptions.count > 20 {
-            recentTranscriptions.removeLast()
-        }
-        lastTranscription = raw
-        lastCleanedText = cleaned
-        saveTranscriptions()
-    }
-
-    func removeTranscriptions(at offsets: IndexSet) {
-        recentTranscriptions.remove(atOffsets: offsets)
-        saveTranscriptions()
-    }
-
-    func clearTranscriptions() {
-        recentTranscriptions.removeAll()
-        saveTranscriptions()
-    }
-
-    private func saveTranscriptions() {
-        if let data = try? JSONEncoder().encode(recentTranscriptions) {
-            UserDefaults.standard.set(data, forKey: "recentTranscriptions")
-        }
-    }
-
-    private static func loadTranscriptions() -> [TranscriptionRecord] {
-        guard let data = UserDefaults.standard.data(forKey: "recentTranscriptions"),
-              let records = try? JSONDecoder().decode([TranscriptionRecord].self, from: data)
-        else { return [] }
-        return records
-    }
-}
-
-struct TranscriptionRecord: Identifiable, Codable {
-    let id: UUID
-    let timestamp: Date
-    let rawText: String
-    let filteredText: String?
-    let cleanedText: String?
-    let context: AppContext?
-    let filterRan: Bool
-    let llmRan: Bool
-
-    init(timestamp: Date, rawText: String, filteredText: String?, cleanedText: String?,
-         context: AppContext?, filterRan: Bool, llmRan: Bool) {
-        self.id = UUID()
-        self.timestamp = timestamp
-        self.rawText = rawText
-        self.filteredText = filteredText
-        self.cleanedText = cleanedText
-        self.context = context
-        self.filterRan = filterRan
-        self.llmRan = llmRan
-    }
-
-    var displayText: String {
-        cleanedText ?? filteredText ?? rawText
     }
 }
