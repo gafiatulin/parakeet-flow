@@ -53,6 +53,25 @@ enum DictionaryCorrector {
         return result.joined(separator: " ")
     }
 
+    /// Returns the subset of dictionary words that are relevant to the given text
+    /// (i.e., at least one word in the text fuzzy-matches the dictionary entry).
+    /// Useful for trimming the dictionary before injecting into an LLM prompt.
+    static func relevantWords(from dictionary: [String], for text: String, threshold: Double = defaultThreshold) -> [String] {
+        guard !dictionary.isEmpty, !text.isEmpty else { return [] }
+
+        let textWords = text.lowercased().components(separatedBy: " ")
+            .map { $0.filter { $0.isLetter || $0.isNumber } }
+            .filter { $0.count >= 2 }
+
+        return dictionary.filter { entry in
+            let normalized = entry.lowercased().filter { $0.isLetter || $0.isNumber }
+            guard normalized.count >= 2 else { return false }
+            return textWords.contains { word in
+                combinedScore(word, normalized) < threshold * 2
+            }
+        }
+    }
+
     // MARK: - Matching
 
     private static func findBestMatch(

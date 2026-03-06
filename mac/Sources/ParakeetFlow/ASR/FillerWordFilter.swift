@@ -1,28 +1,43 @@
 import Foundation
 
 enum FillerWordFilter {
-    private static let fillerPatterns: [String] = [
-        "\\byou know\\b",
-        "\\bI mean\\b",
-        "\\bkind of\\b",
-        "\\bsort of\\b",
-        "\\bum\\b",
-        "\\buh\\b",
-        "\\bah\\b",
-        "\\ber\\b",
-        "\\blike\\b",
-        "\\bbasically\\b",
-        "\\bactually\\b",
-        "\\bliterally\\b",
-        "\\bhonestly\\b",
+    static let defaultFillerWords: [String] = [
+        "you know",
+        "I mean",
+        "kind of",
+        "sort of",
+        "um",
+        "uh",
+        "ah",
+        "er",
+        "like",
+        "basically",
+        "actually",
+        "literally",
+        "honestly",
     ]
+
+    nonisolated(unsafe) private static var compiledPatterns: [(NSRegularExpression, String)] = {
+        buildPatterns(defaultFillerWords)
+    }()
+
+    static func updatePatterns(_ words: [String]) {
+        compiledPatterns = buildPatterns(words)
+    }
+
+    private static func buildPatterns(_ words: [String]) -> [(NSRegularExpression, String)] {
+        words.compactMap { word in
+            let pattern = "\\b\(NSRegularExpression.escapedPattern(for: word))\\b"
+            guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else {
+                return nil
+            }
+            return (regex, word)
+        }
+    }
 
     static func removeFillersFromText(_ text: String) -> String {
         var result = text
-        for pattern in fillerPatterns {
-            guard let regex = try? NSRegularExpression(
-                pattern: pattern, options: .caseInsensitive
-            ) else { continue }
+        for (regex, _) in compiledPatterns {
             result = regex.stringByReplacingMatches(
                 in: result,
                 range: NSRange(result.startIndex..., in: result),

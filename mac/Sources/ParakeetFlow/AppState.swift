@@ -179,6 +179,12 @@ final class AppState {
     var isFillerRemovalEnabled: Bool {
         didSet { UserDefaults.standard.set(isFillerRemovalEnabled, forKey: "isFillerRemovalEnabled") }
     }
+    var fillerWords: [String] {
+        didSet {
+            UserDefaults.standard.set(fillerWords, forKey: "fillerWords")
+            FillerWordFilter.updatePatterns(fillerWords)
+        }
+    }
     var isDictionaryEnabled: Bool {
         didSet { UserDefaults.standard.set(isDictionaryEnabled, forKey: "isDictionaryEnabled") }
     }
@@ -213,6 +219,7 @@ final class AppState {
         defaults.register(defaults: [
             "isLLMEnabled": true,
             "isFillerRemovalEnabled": true,
+            "fillerWords": FillerWordFilter.defaultFillerWords,
             "isDictionaryEnabled": true,
             "dictionaryThreshold": DictionaryCorrector.defaultThreshold,
             "isAudioFeedbackEnabled": true,
@@ -225,6 +232,8 @@ final class AppState {
         ])
         self.isLLMEnabled = defaults.bool(forKey: "isLLMEnabled")
         self.isFillerRemovalEnabled = defaults.bool(forKey: "isFillerRemovalEnabled")
+        let loadedFillerWords = (defaults.array(forKey: "fillerWords") as? [String]) ?? FillerWordFilter.defaultFillerWords
+        self.fillerWords = loadedFillerWords
         self.isDictionaryEnabled = defaults.bool(forKey: "isDictionaryEnabled")
         self.dictionaryThreshold = defaults.double(forKey: "dictionaryThreshold")
         self.isAudioFeedbackEnabled = defaults.bool(forKey: "isAudioFeedbackEnabled")
@@ -234,6 +243,7 @@ final class AppState {
         self.asrBackend = AsrBackend(rawValue: defaults.string(forKey: "asrBackend") ?? "") ?? .apple
         self.llmBackend = LlmBackend(rawValue: defaults.string(forKey: "llmBackend") ?? "") ?? .apple
         self.mlxModel = MlxModelChoice(rawValue: defaults.string(forKey: "mlxModel") ?? "") ?? .qwen35_2b
+        FillerWordFilter.updatePatterns(loadedFillerWords)
     }
 
     var isLaunchAtLoginEnabled: Bool {

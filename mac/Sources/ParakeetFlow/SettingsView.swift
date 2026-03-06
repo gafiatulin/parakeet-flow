@@ -11,6 +11,11 @@ struct SettingsView: View {
             GeneralSettingsView(appState: appState, orchestrator: orchestrator)
                 .tabItem { Label("General", systemImage: "gear") }
 
+            if appState.isFillerRemovalEnabled {
+                FillerWordsSettingsView(appState: appState)
+                    .tabItem { Label("Fillers", systemImage: "waveform.path.ecg") }
+            }
+
             if appState.isDictionaryEnabled {
                 DictionarySettingsView(appState: appState)
                     .tabItem { Label("Dictionary", systemImage: "character.book.closed") }
@@ -134,6 +139,7 @@ struct GeneralSettingsView: View {
                             orchestrator?.revealModelCache()
                         }
                         .font(.caption)
+                        .disabled(appState.modelStatusByBackend[appState.asrBackend] != .ready)
                         Spacer()
                         Button("Clear All Models", role: .destructive) {
                             showClearAsrModels = true
@@ -230,6 +236,7 @@ struct GeneralSettingsView: View {
                                 orchestrator?.revealLlmModelCache()
                             }
                             .font(.caption)
+                            .disabled(appState.mlxModelStatus[appState.mlxModel] != .ready)
                             Spacer()
                             Button("Clear All LLM Models", role: .destructive) {
                                 showClearLlmModels = true
@@ -325,6 +332,171 @@ struct GeneralSettingsView: View {
 private enum LlmChoice: Hashable {
     case apple
     case mlx(MlxModelChoice)
+}
+
+struct FillerWordsSettingsView: View {
+    @Bindable var appState: AppState
+    @State private var newWord = ""
+    @State private var searchText = ""
+    @State private var showResetConfirmation = false
+    @State private var duplicateWarning: String?
+
+    private var filteredWords: [String] {
+        guard !searchText.isEmpty else { return appState.fillerWords }
+        let query = searchText.lowercased()
+        return appState.fillerWords.filter { $0.lowercased().contains(query) }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Add bar
+            HStack(spacing: 8) {
+                Image(systemName: "plus.circle.fill")
+                    .foregroundStyle(.tint)
+                    .font(.title3)
+                TextField("Add filler word or phrase...", text: $newWord)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit { addWord() }
+                if let warning = duplicateWarning {
+                    Text(warning)
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+                if !newWord.isEmpty {
+                    Button("Add") { addWord() }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 14)
+            .padding(.bottom, 10)
+
+            // Filter + reset bar
+            if !appState.fillerWords.isEmpty {
+                HStack(spacing: 6) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(.tertiary)
+                        .font(.caption)
+                    TextField("Filter", text: $searchText)
+                        .textFieldStyle(.plain)
+                        .font(.caption)
+                    Spacer()
+                    Text("\(appState.fillerWords.count) words")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                    Button("Reset to Defaults") {
+                        showResetConfirmation = true
+                    }
+                    .font(.caption2)
+                    .buttonStyle(.borderless)
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 8)
+
+                Divider()
+            }
+
+            // Word list
+            if appState.fillerWords.isEmpty {
+                VStack(spacing: 8) {
+                    Spacer()
+                    Image(systemName: "waveform.path.ecg")
+                        .font(.largeTitle)
+                        .foregroundStyle(.quaternary)
+                    Text("No filler words configured")
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
+                    Text("Add words like \"um\", \"uh\", \"you know\"\nor reset to defaults.")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .multilineTextAlignment(.center)
+                    Button("Reset to Defaults") {
+                        appState.fillerWords = FillerWordFilter.defaultFillerWords
+                    }
+                    .controlSize(.small)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity)
+            } else if filteredWords.isEmpty {
+                VStack(spacing: 8) {
+                    Spacer()
+                    Text("No matches for \"\(searchText)\"")
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity)
+            } else {
+                List {
+                    ForEach(filteredWords, id: \.self) { word in
+                        FillerWordRow(word: word) {
+                            appState.fillerWords.removeAll { $0 == word }
+                        }
+                    }
+                    .onDelete { offsets in
+                        let toDelete = offsets.map { filteredWords[$0] }
+                        appState.fillerWords.removeAll { toDelete.contains($0) }
+                    }
+                }
+            }
+        }
+        .confirmationDialog(
+            "Reset filler words to defaults?",
+            isPresented: $showResetConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Reset") {
+                appState.fillerWords = FillerWordFilter.defaultFillerWords
+            }
+        } message: {
+            Text("This will replace your custom list with the \(FillerWordFilter.defaultFillerWords.count) default filler words.")
+        }
+    }
+
+    private func addWord() {
+        let trimmed = newWord.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !trimmed.isEmpty else { return }
+
+        if appState.fillerWords.contains(where: { $0.lowercased() == trimmed }) {
+            duplicateWarning = "Already exists"
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                duplicateWarning = nil
+            }
+            return
+        }
+
+        appState.fillerWords.append(trimmed)
+        newWord = ""
+        duplicateWarning = nil
+    }
+}
+
+private struct FillerWordRow: View {
+    let word: String
+    let onDelete: () -> Void
+    @State private var isHovering = false
+
+    var body: some View {
+        HStack {
+            Text(word)
+            Spacer()
+            if isHovering {
+                Button(role: .destructive) {
+                    onDelete()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.borderless)
+            }
+        }
+        .onHover { isHovering = $0 }
+        .contextMenu {
+            Button("Remove", role: .destructive) {
+                onDelete()
+            }
+        }
+    }
 }
 
 struct PermissionsView: View {

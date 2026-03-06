@@ -329,7 +329,9 @@ final class Orchestrator {
                     mlxPostProcessor.switchModel(to: appState.mlxModel.modelID)
                     try await mlxPostProcessor.ensureModelLoaded()
                 }
-                let dictionaryWords = dictionaryRan ? fetchDictionaryWords() : []
+                let dictionaryWords = dictionaryRan
+                    ? DictionaryCorrector.relevantWords(from: fetchDictionaryWords(), for: dictCorrectedText)
+                    : []
                 finalText = try await PostProcessor.cleanup(
                     rawText: dictCorrectedText, context: context,
                     removeFillers: !filterRan,
