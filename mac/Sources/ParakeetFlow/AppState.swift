@@ -157,6 +157,31 @@ enum ModelStatus: Equatable {
     case error(String)
 }
 
+enum PasteMethod: String, CaseIterable {
+    case paste
+    case accessibility
+    case keyByKey
+    case clipboardOnly
+
+    var label: String {
+        switch self {
+        case .paste: return "Paste (⌘V)"
+        case .accessibility: return "Accessibility API"
+        case .keyByKey: return "Key-by-Key Typing"
+        case .clipboardOnly: return "Clipboard Only"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .paste: return "Simulates ⌘V. Works everywhere, preserves clipboard."
+        case .accessibility: return "Sets text directly via Accessibility. No clipboard use."
+        case .keyByKey: return "Types each character. Slowest but most compatible."
+        case .clipboardOnly: return "Copies text to clipboard without pasting. ⌘V manually."
+        }
+    }
+}
+
 enum AppPhase: String {
     case idle
     case recording
@@ -200,6 +225,9 @@ final class AppState {
     var waveformColor: WaveformColor {
         didSet { UserDefaults.standard.set(waveformColor.rawValue, forKey: "waveformColor") }
     }
+    var pasteMethod: PasteMethod {
+        didSet { UserDefaults.standard.set(pasteMethod.rawValue, forKey: "pasteMethod") }
+    }
     var hotkeyChoice: HotkeyChoice {
         didSet { UserDefaults.standard.set(hotkeyChoice.rawValue, forKey: "hotkeyChoice") }
     }
@@ -225,6 +253,7 @@ final class AppState {
             "isAudioFeedbackEnabled": true,
             "isRecordingOverlayEnabled": false,
             "waveformColor": WaveformColor.parakeet.rawValue,
+            "pasteMethod": PasteMethod.paste.rawValue,
             "hotkeyChoice": HotkeyChoice.option.rawValue,
             "asrBackend": AsrBackend.apple.rawValue,
             "llmBackend": LlmBackend.apple.rawValue,
@@ -239,6 +268,7 @@ final class AppState {
         self.isAudioFeedbackEnabled = defaults.bool(forKey: "isAudioFeedbackEnabled")
         self.isRecordingOverlayEnabled = defaults.bool(forKey: "isRecordingOverlayEnabled")
         self.waveformColor = WaveformColor(rawValue: defaults.string(forKey: "waveformColor") ?? "") ?? .bluePurple
+        self.pasteMethod = PasteMethod(rawValue: defaults.string(forKey: "pasteMethod") ?? "") ?? .paste
         self.hotkeyChoice = HotkeyChoice(rawValue: defaults.string(forKey: "hotkeyChoice") ?? "") ?? .option
         self.asrBackend = AsrBackend(rawValue: defaults.string(forKey: "asrBackend") ?? "") ?? .apple
         self.llmBackend = LlmBackend(rawValue: defaults.string(forKey: "llmBackend") ?? "") ?? .apple

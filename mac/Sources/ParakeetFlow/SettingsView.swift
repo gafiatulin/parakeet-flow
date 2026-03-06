@@ -63,6 +63,17 @@ struct GeneralSettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
+            Section("Text Insertion") {
+                Picker("Method", selection: $appState.pasteMethod) {
+                    ForEach(PasteMethod.allCases, id: \.self) { method in
+                        Text(method.label).tag(method)
+                    }
+                }
+                Text(appState.pasteMethod.description)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Transcription Engine") {
                 Picker("ASR Backend", selection: $appState.asrBackend) {
                     Text(AsrBackend.apple.label).tag(AsrBackend.apple)
