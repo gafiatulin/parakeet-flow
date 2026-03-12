@@ -86,16 +86,6 @@ struct GeneralSettingsView: View {
                     orchestrator?.checkModelStatus()
                 }
 
-                if appState.asrBackend == .apple && !PostProcessor.isAvailable(backend: .apple) {
-                    HStack {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
-                        Text("Apple Intelligence is not available. Enable it in System Settings > Apple Intelligence & Siri. Transcription will fail until enabled.")
-                            .font(.caption)
-                            .foregroundStyle(.orange)
-                    }
-                }
-
                 if appState.asrBackend.needsDownload {
                     HStack {
                         switch appState.modelStatusByBackend[appState.asrBackend] ?? .notDownloaded {

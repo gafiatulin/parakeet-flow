@@ -38,9 +38,7 @@ struct OnboardingView: View {
     }
 
     private var isAsrReady: Bool {
-        if appState.asrBackend == .apple {
-            return PostProcessor.isAvailable(backend: .apple)
-        }
+        if appState.asrBackend == .apple { return true }
         return appState.modelStatusByBackend[appState.asrBackend] == .ready
     }
 
@@ -295,7 +293,7 @@ private struct BackendSelectionStepView: View {
         PostProcessor.isAvailable(backend: .apple)
     }
     private var needsAppleIntelligence: Bool {
-        appState.asrBackend == .apple || (appState.isLLMEnabled && appState.llmBackend == .apple)
+        appState.isLLMEnabled && appState.llmBackend == .apple
     }
 
     var body: some View {
@@ -339,11 +337,7 @@ private struct BackendSelectionStepView: View {
                         orchestrator?.checkModelStatus()
                     }
 
-                    if appState.asrBackend == .apple && !appleIntelligenceAvailable {
-                        Text("Apple Intelligence is required for this engine but is not enabled.")
-                            .font(.caption)
-                            .foregroundStyle(.orange)
-                    }
+
 
                     if appState.asrBackend.needsDownload {
                         AsrModelStatusRow(appState: appState, orchestrator: orchestrator)

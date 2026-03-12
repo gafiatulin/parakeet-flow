@@ -19,9 +19,7 @@ struct MenuBarView: View {
             // Status (shows error detail or live transcription inline)
             Label(statusLabel, systemImage: statusIcon)
 
-            if appState.asrBackend == .apple && !PostProcessor.isAvailable(backend: .apple) {
-                Label("Apple Intelligence unavailable — transcription will fail", systemImage: "exclamationmark.triangle")
-            } else if appState.isLLMEnabled && appState.llmBackend == .apple && !PostProcessor.isAvailable(backend: .apple) {
+            if appState.isLLMEnabled && appState.llmBackend == .apple && !PostProcessor.isAvailable(backend: .apple) {
                 Label("Apple Intelligence unavailable — LLM cleanup skipped", systemImage: "exclamationmark.triangle")
             }
 

@@ -101,7 +101,7 @@ enum AsrBackend: String, CaseIterable {
 
     var label: String {
         switch self {
-        case .apple: return "Apple Intelligence"
+        case .apple: return "Apple Speech"
         case .parakeetV2: return "Parakeet TDT v2 (EN)"
         case .parakeet: return "Parakeet TDT v3 (Multilingual)"
         case .qwen3Asr: return "Qwen3 ASR"
