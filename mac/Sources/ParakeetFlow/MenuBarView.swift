@@ -8,44 +8,59 @@ struct MenuBarView: View {
     @Environment(\.openSettings) private var openSettings
 
     var body: some View {
-        // Status (shows error detail or live transcription inline)
-        Label(statusLabel, systemImage: statusIcon)
-
-        Divider()
-
-        // if/else keeps NSMenu item count stable (always 1 item in this slot)
-        // to avoid AppKit index mismatch warnings in menu-style MenuBarExtra.
-        if appState.phase == .error {
-            Menu("Troubleshoot...") {
-                Button("Open Accessibility") {
-                    openSystemPrefs("Privacy_Accessibility")
-                }
-                Button("Open Microphone") {
-                    openSystemPrefs("Privacy_Microphone")
-                }
+        if !appState.hasCompletedOnboarding {
+            Text("Please complete onboarding")
+            Divider()
+            Button("Quit") {
+                NSApplication.shared.terminate(nil)
             }
+            .keyboardShortcut("q")
         } else {
-            Text("\(appState.hotkeyChoice.symbol) hold / tap · esc cancel")
+            // Status (shows error detail or live transcription inline)
+            Label(statusLabel, systemImage: statusIcon)
+
+            if appState.asrBackend == .apple && !PostProcessor.isAvailable(backend: .apple) {
+                Label("Apple Intelligence unavailable — transcription will fail", systemImage: "exclamationmark.triangle")
+            } else if appState.isLLMEnabled && appState.llmBackend == .apple && !PostProcessor.isAvailable(backend: .apple) {
+                Label("Apple Intelligence unavailable — LLM cleanup skipped", systemImage: "exclamationmark.triangle")
+            }
+
+            Divider()
+
+            // if/else keeps NSMenu item count stable (always 1 item in this slot)
+            // to avoid AppKit index mismatch warnings in menu-style MenuBarExtra.
+            if appState.phase == .error {
+                Menu("Troubleshoot...") {
+                    Button("Open Accessibility") {
+                        openSystemPrefs("Privacy_Accessibility")
+                    }
+                    Button("Open Microphone") {
+                        openSystemPrefs("Privacy_Microphone")
+                    }
+                }
+            } else {
+                Text("\(appState.hotkeyChoice.symbol) hold / tap · esc cancel")
+            }
+
+            Divider()
+
+            Button("History") {
+                NSApp.activate()
+                openWindow(id: "history")
+            }
+
+            Button("Settings...") {
+                NSApp.activate()
+                openSettings()
+            }
+
+            Divider()
+
+            Button("Quit") {
+                NSApplication.shared.terminate(nil)
+            }
+            .keyboardShortcut("q")
         }
-
-        Divider()
-
-        Button("History") {
-            NSApp.activate()
-            openWindow(id: "history")
-        }
-
-        Button("Settings...") {
-            NSApp.activate()
-            openSettings()
-        }
-
-        Divider()
-
-        Button("Quit") {
-            NSApplication.shared.terminate(nil)
-        }
-        .keyboardShortcut("q")
     }
 
     private var statusLabel: String {

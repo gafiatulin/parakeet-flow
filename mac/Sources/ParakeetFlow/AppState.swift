@@ -124,7 +124,7 @@ enum LlmBackend: String, CaseIterable {
     var label: String {
         switch self {
         case .apple: return "Apple Intelligence"
-        case .mlx: return "MLX (On-Device)"
+        case .mlx: return "MLX"
         }
     }
 
@@ -245,6 +245,9 @@ final class AppState {
         didSet { UserDefaults.standard.set(mlxModel.rawValue, forKey: "mlxModel") }
     }
     var mlxModelStatus: [MlxModelChoice: ModelStatus] = [:]
+    var hasCompletedOnboarding: Bool {
+        didSet { UserDefaults.standard.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding") }
+    }
 
     init() {
         let defaults = UserDefaults.standard
@@ -279,6 +282,7 @@ final class AppState {
         self.asrBackend = AsrBackend(rawValue: defaults.string(forKey: "asrBackend") ?? "") ?? .apple
         self.llmBackend = LlmBackend(rawValue: defaults.string(forKey: "llmBackend") ?? "") ?? .apple
         self.mlxModel = MlxModelChoice(rawValue: defaults.string(forKey: "mlxModel") ?? "") ?? .qwen35_2b
+        self.hasCompletedOnboarding = defaults.bool(forKey: "hasCompletedOnboarding")
         FillerWordFilter.updatePatterns(loadedFillerWords)
     }
 

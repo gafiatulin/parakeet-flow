@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0492CF6DC04F47386312901A /* PromptBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AEF853929E08A647D1F92EB /* PromptBuilder.swift */; };
 		0493CAD23F2CF478DD0EC020 /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8640C68EC3FB13F308C3A10A /* HotkeyManager.swift */; };
+		0E6A25D4FDD059B72C35641F /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDBCDE8B7296CE3FD5FC6A90 /* OnboardingView.swift */; };
 		1876EAD6487D9F71E7D30C21 /* TextInserter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91A2EA383FE1B95A0295E425 /* TextInserter.swift */; };
 		26745B69E75D94C320626DD5 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3121F09D5860E95FA1CFBE1E /* MenuBarView.swift */; };
 		3744B89752983DCD3025DDFA /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = 72603CF3974A051DD441E58B /* FluidAudio */; };
@@ -52,6 +53,7 @@
 		8B68F2DF02985DEFB60B564C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		91A2EA383FE1B95A0295E425 /* TextInserter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextInserter.swift; sourceTree = "<group>"; };
 		A09FEB278B8EDA4FFEC4082E /* AudioFeedbackManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFeedbackManager.swift; sourceTree = "<group>"; };
+		BDBCDE8B7296CE3FD5FC6A90 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		CE4C60B7A303C85B8D20B7FC /* LaunchAtLoginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginManager.swift; sourceTree = "<group>"; };
 		D24207750AA877ED53DBE031 /* Qwen3AsrEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Qwen3AsrEngine.swift; sourceTree = "<group>"; };
 		D263AEB4E3B0D9475F482646 /* ParakeetEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParakeetEngine.swift; sourceTree = "<group>"; };
@@ -154,6 +156,7 @@
 		562F723C5CEF79792C89DE01 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				BDBCDE8B7296CE3FD5FC6A90 /* OnboardingView.swift */,
 				DC5ACBD2F8E60039D3927F34 /* RecordingOverlayWindow.swift */,
 			);
 			path = UI;
@@ -286,6 +289,7 @@
 				434D9F0293FC9817FC4DE56D /* MLXPostProcessor.swift in Sources */,
 				26745B69E75D94C320626DD5 /* MenuBarView.swift in Sources */,
 				483D43E64514F525E6D4A2CB /* Models.swift in Sources */,
+				0E6A25D4FDD059B72C35641F /* OnboardingView.swift in Sources */,
 				8BEB5C3AFEB35D8A212C2654 /* Orchestrator.swift in Sources */,
 				C8B7588448DF48ED4FDA6974 /* ParakeetEngine.swift in Sources */,
 				6B081FEBFA92FA73CFB3CE64 /* ParakeetFlowApp.swift in Sources */,

@@ -21,7 +21,7 @@ final class Orchestrator {
 
     private var useBatchEngine: Bool { appState.asrBackend != .apple }
 
-    private var isInitialized = false
+    private(set) var isInitialized = false
     private var recordingStartTask: Task<Void, Never>?
     private var isHandsFreeMode = false
     private var isRecordingOrPending = false
