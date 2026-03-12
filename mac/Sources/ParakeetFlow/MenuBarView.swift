@@ -63,6 +63,10 @@ struct MenuBarView: View {
 
     private var statusLabel: String {
         if appState.phase == .recording, let partial = appState.partialTranscription {
+            let maxLength = 40
+            if partial.count > maxLength {
+                return "…" + partial.suffix(maxLength)
+            }
             return partial
         }
         return appState.statusText
