@@ -90,7 +90,7 @@ dependencies {
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 
     // DataStore
-    implementation("androidx.datastore:datastore-preferences:1.2.0")
+    implementation("androidx.datastore:datastore-preferences:1.2.1")
 
     // LiteRT-LM
     implementation("com.google.ai.edge.litertlm:litertlm-android:0.9.0-alpha02")
