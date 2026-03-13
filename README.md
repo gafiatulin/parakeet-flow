@@ -40,11 +40,14 @@ See the [macOS README](mac/README.md) for detailed build instructions, prerequis
 
 Floating bubble overlay for Android 8+. Uses Sherpa-ONNX with NVIDIA Parakeet TDT 0.6B (int8) for ASR and LiteRT-LM with Qwen3 0.6B (int4) for LLM cleanup.
 
-#### Build
+**Quick start** — requires JDK 17+ and Android SDK with API 36:
 
 ```bash
-cd android && ./gradlew assembleRelease -x lintVitalRelease
+cd android
+./gradlew assembleRelease -x lintVitalRelease
 ```
+
+See the [Android README](android/README.md) for detailed build instructions, permissions, and architecture.
 
 ## Architecture
 

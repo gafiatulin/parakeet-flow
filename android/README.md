@@ -106,7 +106,17 @@ Models are downloaded in-app from HuggingFace. No authentication required.
 | `INTERNET` | Model downloads |
 | AccessibilityService | Read focused field, insert text, detect text fields |
 
-## Instrumentation Tests
+## Tests
+
+### Unit tests
+
+```bash
+./gradlew testDebugUnitTest
+```
+
+Tests cover `FillerWordFilter` and `PromptBuilder` — pure logic with no Android dependencies.
+
+### Instrumentation tests
 
 ```bash
 # Push ASR models to device first

@@ -9,3 +9,8 @@ updates:
     directory: /mac
     schedule:
       interval: weekly
+
+  - package-ecosystem: gradle
+    directory: /android
+    schedule:
+      interval: weekly
