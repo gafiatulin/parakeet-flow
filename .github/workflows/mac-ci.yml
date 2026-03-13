@@ -18,6 +18,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Cache SPM dependencies
+        uses: actions/cache@v5
+        with:
+          path: mac/DerivedData/SourcePackages
+          key: spm-${{ runner.os }}-${{ hashFiles('mac/Package.swift', 'mac/Package.resolved') }}
+          restore-keys: spm-${{ runner.os }}-
+
       - name: Install XcodeGen
         run: brew install xcodegen
 
@@ -27,8 +34,14 @@ jobs:
 
       - name: Build
         working-directory: mac
-        run: xcodebuild build -scheme ParakeetFlow -configuration Debug -quiet
+        run: >
+          xcodebuild build -scheme ParakeetFlow -configuration Debug
+          -clonedSourcePackagesDirPath DerivedData/SourcePackages
+          -quiet
 
       - name: Test
         working-directory: mac
-        run: xcodebuild test -scheme ParakeetFlow -configuration Debug -quiet
+        run: >
+          xcodebuild test -scheme ParakeetFlow -configuration Debug
+          -clonedSourcePackagesDirPath DerivedData/SourcePackages
+          -quiet
