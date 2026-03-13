@@ -53,13 +53,32 @@ targets:
         com.apple.security.device.audio-input: true
         com.apple.security.network.client: true
 
+  ParakeetFlowTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests/ParakeetFlowTests
+    dependencies:
+      - target: ParakeetFlow
+    settings:
+      base:
+        SWIFT_VERSION: "6.2"
+        GENERATE_INFOPLIST_FILE: true
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/ParakeetFlow.app/Contents/MacOS/ParakeetFlow"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+
 schemes:
   ParakeetFlow:
     build:
       targets:
         ParakeetFlow: all
+        ParakeetFlowTests: [test]
     run:
       config: Debug
+    test:
+      config: Debug
+      targets:
+        - ParakeetFlowTests
     profile:
       config: Release
     analyze:

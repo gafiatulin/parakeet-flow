@@ -26,15 +26,23 @@ On-device voice dictation with LLM post-processing. Hold a hotkey (or tap a bubb
 
 Menu bar app for macOS 26+ (Tahoe). Uses Apple SpeechAnalyzer for streaming ASR and Apple FoundationModels for LLM cleanup. Alternative backends via FluidAudio (Parakeet TDT) and MLX (Qwen, Phi, Llama).
 
+**Quick start** — requires [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`):
+
+```bash
+cd mac
+xcodegen generate
+xcodebuild build -scheme ParakeetFlow -configuration Debug
 ```
-cd mac && xcodegen generate && xcodebuild build -scheme ParakeetFlow
-```
+
+See the [macOS README](mac/README.md) for detailed build instructions, prerequisites, permissions, and configuration options.
 
 ### [Android](android/)
 
 Floating bubble overlay for Android 8+. Uses Sherpa-ONNX with NVIDIA Parakeet TDT 0.6B (int8) for ASR and LiteRT-LM with Qwen3 0.6B (int4) for LLM cleanup.
 
-```
+#### Build
+
+```bash
 cd android && ./gradlew assembleRelease -x lintVitalRelease
 ```
 

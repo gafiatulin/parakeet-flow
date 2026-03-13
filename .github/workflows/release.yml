@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-dmg:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: mac
+        run: xcodegen generate
+
+      - name: Build release
+        working-directory: mac
+        run: xcodebuild build -scheme ParakeetFlow -configuration Release -derivedDataPath build -quiet
+
+      - name: Run tests
+        working-directory: mac
+        run: xcodebuild test -scheme ParakeetFlow -configuration Debug -quiet
+
+      - name: Create DMG
+        run: |
+          APP_PATH="mac/build/Build/Products/Release/ParakeetFlow.app"
+          DMG_NAME="ParakeetFlow-${GITHUB_REF_NAME}.dmg"
+
+          # Create a temporary directory for DMG contents
+          mkdir -p dmg-staging
+          cp -R "$APP_PATH" dmg-staging/
+          ln -s /Applications dmg-staging/Applications
+
+          # Create DMG
+          hdiutil create -volname "ParakeetFlow" \
+            -srcfolder dmg-staging \
+            -ov -format UDZO \
+            "$DMG_NAME"
+
+          echo "DMG_NAME=$DMG_NAME" >> "$GITHUB_ENV"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.DMG_NAME }}
+          generate_release_notes: true

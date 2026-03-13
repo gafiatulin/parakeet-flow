@@ -50,6 +50,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     nonisolated func applicationDidFinishLaunching(_ notification: Notification) {
+        // Skip initialization when running as a test host
+        if NSClassFromString("XCTestCase") != nil { return }
+
         Task { @MainActor in
             if !self.appState.hasCompletedOnboarding {
                 NSApp.setActivationPolicy(.regular)
