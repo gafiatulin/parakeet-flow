@@ -108,7 +108,7 @@ dependencies {
     implementation("androidx.dynamicanimation:dynamicanimation:1.0.0")
 
     // Core KTX
-    implementation("androidx.core:core-ktx:1.17.0")
+    implementation("androidx.core:core-ktx:1.18.0")
 
     // Unit tests
     testImplementation("junit:junit:4.13.2")
