@@ -4,7 +4,7 @@
 <h1 align="center">ParakeetFlow</h1>
 <p align="center">
   <a href="https://github.com/gafiatulin/parakeet-flow/releases/latest">
-    <img src="https://img.shields.io/github/v/release/gafiatulin/parakeet-flow?style=for-the-badge&color=1a1a3e" alt="Latest Release">
+    <img src="https://img.shields.io/badge/Download-Latest%20Release-1a1a3e?style=for-the-badge" alt="Latest Release">
   </a>
 </p>
 
