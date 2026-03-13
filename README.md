@@ -1,11 +1,12 @@
 <p align="center">
   <img src="app-icon.png" width="128" alt="ParakeetFlow icon">
   <h1 align="center">ParakeetFlow</h1>
+  <a href="https://github.com/gafiatulin/parakeet-flow/releases/latest">
+    <img src="https://img.shields.io/github/v/release/gafiatulin/parakeet-flow?style=for-the-badge&color=1a1a3e" alt="Latest Release">
+  </a>
 </p>
 
 On-device voice dictation with LLM post-processing. Hold a hotkey (or tap a bubble) to record, release to transcribe and insert cleaned-up text at the cursor. All processing happens locally — no cloud APIs.
-
-[![Latest Release](https://img.shields.io/github/v/release/gafiatulin/parakeet-flow?style=for-the-badge&color=1a1a3e)](https://github.com/gafiatulin/parakeet-flow/releases/latest)
 
 > **Note:** This project is an ongoing experiment with agentic coding flows — almost one-shotting entire apps and features. Expect rough edges.
 
