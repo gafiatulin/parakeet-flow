@@ -29,7 +29,7 @@ jobs:
             -addext "extendedKeyUsage=codeSigning"
 
           # Package as .p12
-          openssl pkcs12 -export \
+          openssl pkcs12 -export -legacy \
             -inkey "$RUNNER_TEMP/key.pem" \
             -in "$RUNNER_TEMP/cert.pem" \
             -out "$RUNNER_TEMP/cert.p12" \
