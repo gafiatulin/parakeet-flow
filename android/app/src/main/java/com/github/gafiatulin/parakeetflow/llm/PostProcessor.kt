@@ -44,21 +44,21 @@ class PostProcessor @Inject constructor(
 
             val eng = if (useGpu) {
                 try {
-                    val gpuConfig = EngineConfig(modelPath = modelPath, backend = Backend.GPU)
+                    val gpuConfig = EngineConfig(modelPath = modelPath, backend = Backend.GPU())
                     Engine(gpuConfig).also {
                         it.initialize()
                         Log.i(TAG, "LLM engine initialized on GPU")
                     }
                 } catch (e: Exception) {
                     Log.w(TAG, "GPU init failed, falling back to CPU", e)
-                    val cpuConfig = EngineConfig(modelPath = modelPath, backend = Backend.CPU)
+                    val cpuConfig = EngineConfig(modelPath = modelPath, backend = Backend.CPU())
                     Engine(cpuConfig).also {
                         it.initialize()
                         Log.i(TAG, "LLM engine initialized on CPU (GPU fallback)")
                     }
                 }
             } else {
-                val cpuConfig = EngineConfig(modelPath = modelPath, backend = Backend.CPU)
+                val cpuConfig = EngineConfig(modelPath = modelPath, backend = Backend.CPU())
                 Engine(cpuConfig).also {
                     it.initialize()
                     Log.i(TAG, "LLM engine initialized on CPU")
