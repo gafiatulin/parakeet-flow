@@ -70,6 +70,8 @@ jobs:
           xcodebuild build -scheme ParakeetFlow -configuration Release
           -clonedSourcePackagesDirPath DerivedData/SourcePackages
           -derivedDataPath build
+          CODE_SIGN_STYLE=Manual
+          CODE_SIGN_IDENTITY="ParakeetFlow Self-Signed"
           OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN_PATH"
           -quiet
 

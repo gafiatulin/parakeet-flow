@@ -39,8 +39,6 @@ targets:
         INFOPLIST_FILE: Sources/ParakeetFlow/Resources/Info.plist
         GENERATE_INFOPLIST_FILE: false
         CODE_SIGN_ENTITLEMENTS: ParakeetFlow.entitlements
-        CODE_SIGN_STYLE: Manual
-        CODE_SIGN_IDENTITY: "ParakeetFlow Self-Signed"
         ENABLE_APP_SANDBOX: false
         ENABLE_HARDENED_RUNTIME: true
         CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION: true
