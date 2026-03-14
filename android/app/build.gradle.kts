@@ -33,6 +33,15 @@ android {
 
     signingConfigs {
         getByName("debug") {}
+        create("release") {
+            val ks = file(System.getenv("RELEASE_KEYSTORE") ?: "release.keystore")
+            if (ks.exists()) {
+                storeFile = ks
+                storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD") ?: ""
+                keyAlias = System.getenv("RELEASE_KEY_ALIAS") ?: ""
+                keyPassword = System.getenv("RELEASE_KEY_PASSWORD") ?: ""
+            }
+        }
     }
 
     buildTypes {
@@ -43,7 +52,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (signingConfigs.getByName("release").storeFile?.exists() == true)
+                signingConfigs.getByName("release")
+            else
+                signingConfigs.getByName("debug")
         }
         debug {
             isMinifyEnabled = false
