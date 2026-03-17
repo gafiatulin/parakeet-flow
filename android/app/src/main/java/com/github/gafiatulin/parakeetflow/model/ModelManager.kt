@@ -28,7 +28,7 @@ class ModelManager @Inject constructor(
 
         private const val LLM_BASE_URL =
             "https://huggingface.co/litert-community/Qwen3-0.6B/resolve/main"
-        private const val LLM_MODEL_FILE = "Qwen3-0.6B-int4.litertlm"
+        private const val LLM_MODEL_FILE = "Qwen3-0.6B.litertlm"
     }
 
     private val modelsDir: File

@@ -11,7 +11,7 @@ Bubble (tap/hold) → AudioCaptureManager → Sherpa-ONNX ASR → FillerWordFilt
 
 **ASR**: [NVIDIA Parakeet TDT 0.6B](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2) via [Sherpa-ONNX](https://github.com/k2-fsa/sherpa-onnx) (int8 quantized, offline transducer). Two model variants: v2 (English-only) and v3 (multilingual en/de/es/fr).
 
-**LLM**: [Qwen3 0.6B](https://huggingface.co/litert-community/Qwen3-0.6B) via [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM) (int4, CPU/GPU). Cleans up punctuation, capitalization, stutters, and backtrack phrases.
+**LLM**: [Qwen3 0.6B](https://huggingface.co/litert-community/Qwen3-0.6B) via [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM) (dynamic_int8, CPU/GPU). Cleans up punctuation, capitalization, stutters, and backtrack phrases.
 
 **Text insertion**: AccessibilityService pastes via clipboard into the focused text field, with fallback to `ACTION_SET_TEXT`.
 
