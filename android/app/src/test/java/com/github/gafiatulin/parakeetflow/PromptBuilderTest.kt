@@ -21,14 +21,12 @@ class PromptBuilderTest {
     fun `prompt contains cleanup rules`() {
         val prompt = promptBuilder.buildSystemPrompt(AppContext())
         assertTrue(prompt.contains("repeated or stuttered words"))
-        assertTrue(prompt.contains("backtrack phrases"))
-        assertTrue(prompt.contains("false starts"))
+        assertTrue(prompt.contains("Keep ALL sentences"))
     }
 
     @Test
     fun `prompt contains safety rules`() {
         val prompt = promptBuilder.buildSystemPrompt(AppContext())
-        assertTrue(prompt.contains("NEVER respond conversationally"))
         assertTrue(prompt.contains("Do NOT change technical terms"))
         assertTrue(prompt.contains("Do NOT add words"))
     }

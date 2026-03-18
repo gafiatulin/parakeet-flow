@@ -264,7 +264,7 @@ fun SettingsScreen(
 
             ModelStatusCard(
                 title = "Qwen3 0.6B",
-                description = "Text cleanup model (~586 MB)",
+                description = "Text cleanup model (~614 MB)",
                 status = llmStatus,
                 onDownload = { appViewModel.downloadLlmModel() },
                 onCancel = { appViewModel.cancelLlmDownload() },

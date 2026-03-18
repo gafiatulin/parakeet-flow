@@ -2,10 +2,10 @@ package com.github.gafiatulin.parakeetflow.llm
 
 import android.util.Log
 import com.google.ai.edge.litertlm.Backend
+import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
-import com.google.ai.edge.litertlm.Message
 import com.google.ai.edge.litertlm.SamplerConfig
 import com.github.gafiatulin.parakeetflow.core.model.AppContext
 import kotlinx.coroutines.Dispatchers
@@ -42,26 +42,22 @@ class PostProcessor @Inject constructor(
                 return@withContext false
             }
 
-            val eng = if (useGpu) {
-                try {
-                    val gpuConfig = EngineConfig(modelPath = modelPath, backend = Backend.GPU())
-                    Engine(gpuConfig).also {
-                        it.initialize()
-                        Log.i(TAG, "LLM engine initialized on GPU")
-                    }
-                } catch (e: Exception) {
-                    Log.w(TAG, "GPU init failed, falling back to CPU", e)
-                    val cpuConfig = EngineConfig(modelPath = modelPath, backend = Backend.CPU())
-                    Engine(cpuConfig).also {
-                        it.initialize()
-                        Log.i(TAG, "LLM engine initialized on CPU (GPU fallback)")
-                    }
+            // GPU init can OOM-kill the process on some devices, so only attempt
+            // GPU when the user explicitly opts in.
+            val backend = if (useGpu) Backend.GPU() else Backend.CPU()
+            val eng = try {
+                val config = EngineConfig(modelPath = modelPath, backend = backend)
+                Engine(config).also {
+                    it.initialize()
+                    Log.i(TAG, "LLM engine initialized on ${if (useGpu) "GPU" else "CPU"}")
                 }
-            } else {
+            } catch (e: Exception) {
+                if (!useGpu) throw e
+                Log.w(TAG, "GPU init failed, falling back to CPU", e)
                 val cpuConfig = EngineConfig(modelPath = modelPath, backend = Backend.CPU())
                 Engine(cpuConfig).also {
                     it.initialize()
-                    Log.i(TAG, "LLM engine initialized on CPU")
+                    Log.i(TAG, "LLM engine initialized on CPU (GPU fallback)")
                 }
             }
 
@@ -89,10 +85,9 @@ class PostProcessor @Inject constructor(
         try {
             val result = withTimeoutOrNull(15_000L) {
                 val systemPrompt = promptBuilder.buildSystemPrompt(appContext)
-                val systemMessage = Message.user(systemPrompt)
 
                 val convConfig = ConversationConfig(
-                    systemMessage = systemMessage,
+                    systemInstruction = Contents.of(systemPrompt),
                     samplerConfig = SamplerConfig(
                         topK = 1,
                         topP = 0.9,
@@ -101,13 +96,11 @@ class PostProcessor @Inject constructor(
                     )
                 )
 
-                val conv = engine!!.createConversation(convConfig)
-                val response = conv.sendMessage(rawText)
-                conv.close()
-
-                // Strip Qwen3 thinking tags if present
-                response.toString().trim()
-                    .replace(Regex("(?s)<think>.*?</think>\\s*"), "")
+                engine!!.createConversation(convConfig).use { conv ->
+                    // Strip Qwen3 thinking tags if present
+                    conv.sendMessage(rawText).toString().trim()
+                        .replace(Regex("(?s)<think>.*?</think>\\s*"), "")
+                }
             }
 
             if (result.isNullOrBlank()) {
