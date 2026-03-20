@@ -117,7 +117,7 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.9.7")
 
     // Dynamic animation (spring physics)
-    implementation("androidx.dynamicanimation:dynamicanimation:1.0.0")
+    implementation("androidx.dynamicanimation:dynamicanimation:1.1.0")
 
     // Core KTX
     implementation("androidx.core:core-ktx:1.18.0")
