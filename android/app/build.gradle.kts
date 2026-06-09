@@ -14,7 +14,7 @@ kotlin {
 
 android {
     namespace = "com.github.gafiatulin.parakeetflow"
-    compileSdk = 36
+    compileSdk = 37
     ndkVersion = "29.0.14206865"
 
     defaultConfig {
