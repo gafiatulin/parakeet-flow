@@ -14,7 +14,7 @@ kotlin {
 
 android {
     namespace = "com.github.gafiatulin.parakeetflow"
-    compileSdk = 36
+    compileSdk = 37
     ndkVersion = "29.0.14206865"
 
     defaultConfig {
@@ -120,7 +120,7 @@ dependencies {
     implementation("androidx.dynamicanimation:dynamicanimation:1.1.0")
 
     // Core KTX
-    implementation("androidx.core:core-ktx:1.18.0")
+    implementation("androidx.core:core-ktx:1.19.0")
 
     // Unit tests
     testImplementation("junit:junit:4.13.2")
