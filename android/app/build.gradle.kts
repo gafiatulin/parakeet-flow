@@ -108,7 +108,7 @@ dependencies {
     implementation("com.google.ai.edge.litertlm:litertlm-android:0.13.1")
 
     // OkHttp
-    implementation("com.squareup.okhttp3:okhttp:5.3.2")
+    implementation("com.squareup.okhttp3:okhttp:5.4.0")
 
     // Serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
