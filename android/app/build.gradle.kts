@@ -12,6 +12,15 @@ kotlin {
     }
 }
 
+// Dagger/Hilt 2.59.2 bundles kotlin-metadata-jvm 2.2.20, which cannot read the
+// metadata emitted by Kotlin 2.4.0. Force a matching version on the annotation
+// processor classpath. Remove once Hilt ships with kotlin-metadata-jvm >= 2.4.0.
+configurations.configureEach {
+    resolutionStrategy {
+        force("org.jetbrains.kotlin:kotlin-metadata-jvm:${libs.versions.kotlin.get()}")
+    }
+}
+
 android {
     namespace = "com.github.gafiatulin.parakeetflow"
     compileSdk = 37
