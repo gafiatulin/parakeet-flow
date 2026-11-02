@@ -164,7 +164,7 @@ enum MlxModelChoice: String, CaseIterable {
 
     var label: String {
         switch self {
-        case .qwen35_08b_cleanup: return "Qwen 3.5 0.8B Cleanup (5-bit)"
+        case .qwen35_08b_cleanup: return "Qwen 3.5 0.8B Cleanup (English)"
         case .qwen35_2b: return "Qwen 3.5 2B (6-bit)"
         case .phi4mini: return "Phi-4 Mini (4-bit)"
         case .llama32_3b: return "Llama 3.2 3B (4-bit)"
