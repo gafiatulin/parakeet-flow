@@ -16,6 +16,7 @@ final class Orchestrator {
     private let bark3Engine: ParakeetEngine
     private let bark3CleanEngine: ParakeetEngine
     private let qwen3Engine: Qwen3AsrEngine
+    private let nemotronEngine: NemotronStreamingEngine
     private let mlxPostProcessor = MLXPostProcessor()
     private let hotkeyManager = HotkeyManager()
     private let overlayController = RecordingOverlayController()
@@ -38,6 +39,7 @@ final class Orchestrator {
         self.bark3Engine = ParakeetEngine(version: .bark3)
         self.bark3CleanEngine = ParakeetEngine(version: .bark3Clean)
         self.qwen3Engine = Qwen3AsrEngine()
+        self.nemotronEngine = NemotronStreamingEngine()
     }
 
     func initialize() async {
@@ -202,6 +204,8 @@ final class Orchestrator {
                     try await bark3CleanEngine.ensureModelLoaded()
                 case .qwen3Asr:
                     try await qwen3Engine.ensureModelLoaded()
+                case .nemotronStreaming:
+                    try await nemotronEngine.ensureModelLoaded()
                 case .apple:
                     break
                 }
@@ -433,6 +437,7 @@ final class Orchestrator {
         case .bark3: await bark3Engine.startSession(onPartial: onPartial)
         case .bark3Clean: await bark3CleanEngine.startSession(onPartial: onPartial)
         case .qwen3Asr: await qwen3Engine.startSession(onPartial: onPartial)
+        case .nemotronStreaming: await nemotronEngine.startSession(onPartial: onPartial)
         case .apple: break
         }
     }
@@ -444,6 +449,7 @@ final class Orchestrator {
         case .bark3: await bark3Engine.cancelSession()
         case .bark3Clean: await bark3CleanEngine.cancelSession()
         case .qwen3Asr: await qwen3Engine.cancelSession()
+        case .nemotronStreaming: await nemotronEngine.cancelSession()
         case .apple: break
         }
     }
@@ -467,6 +473,9 @@ final class Orchestrator {
         case .qwen3Asr:
             let engine = qwen3Engine
             return { buffer in engine.feedAudio(buffer) }
+        case .nemotronStreaming:
+            let engine = nemotronEngine
+            return { buffer in engine.feedAudio(buffer) }
         case .apple:
             return { _ in }
         }
@@ -479,6 +488,7 @@ final class Orchestrator {
         case .bark3: return bark3Engine.targetFormat
         case .bark3Clean: return bark3CleanEngine.targetFormat
         case .qwen3Asr: return qwen3Engine.targetFormat
+        case .nemotronStreaming: return nemotronEngine.targetFormat
         case .apple: return nil
         }
     }
@@ -490,6 +500,7 @@ final class Orchestrator {
         case .bark3: return try await bark3Engine.finishSession()
         case .bark3Clean: return try await bark3CleanEngine.finishSession()
         case .qwen3Asr: return try await qwen3Engine.finishSession()
+        case .nemotronStreaming: return try await nemotronEngine.finishSession()
         case .apple: return ""
         }
     }
@@ -522,6 +533,8 @@ final class Orchestrator {
         case .qwen3Asr:
             // Handled by the async availability check above.
             exists = false
+        case .nemotronStreaming:
+            exists = nemotronEngine.isModelDownloaded()
         case .apple:
             exists = true
         }
@@ -567,6 +580,8 @@ final class Orchestrator {
                         appState.modelStatusByBackend[.qwen3Asr] = .downloading(progress: fraction)
                     }
                 }
+            case .nemotronStreaming:
+                try await nemotronEngine.ensureModelLoaded()
             case .apple:
                 break
             }
@@ -639,6 +654,7 @@ final class Orchestrator {
         case .bark3: return AsrModels.defaultCacheDirectory(for: .bark3)
         case .bark3Clean: return AsrModels.defaultCacheDirectory(for: .bark3Clean)
         case .qwen3Asr: return Qwen3AsrEngine.cacheDirectory
+        case .nemotronStreaming: return NemotronStreamingEngine.cacheDirectory
         case .apple: return URL(fileURLWithPath: "/dev/null")
         }
     }
@@ -650,6 +666,7 @@ final class Orchestrator {
         case .bark3: return 420_000_000
         case .bark3Clean: return 430_000_000
         case .qwen3Asr: return 945_000_000
+        case .nemotronStreaming: return 1_500_000_000
         case .apple: return 1
         }
     }
@@ -825,6 +842,7 @@ final class Orchestrator {
         if bark3Engine.isLoaded { bark3Engine.unload() }
         if bark3CleanEngine.isLoaded { bark3CleanEngine.unload() }
         qwen3Engine.unload()
+        nemotronEngine.unload()
         if mlxPostProcessor.isLoaded { mlxPostProcessor.unload() }
     }
 }

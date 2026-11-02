@@ -118,6 +118,7 @@ enum AsrBackend: String, CaseIterable {
     case bark3
     case bark3Clean
     case qwen3Asr
+    case nemotronStreaming
 
     var label: String {
         switch self {
@@ -127,13 +128,14 @@ enum AsrBackend: String, CaseIterable {
         case .bark3: return "Bark 3.0 (English, 163 MB)"
         case .bark3Clean: return "Bark 3.0 Clean (English dictation)"
         case .qwen3Asr: return "Qwen3-ASR 0.6B (30 languages)"
+        case .nemotronStreaming: return "Nemotron 3.5 Streaming (40 locales)"
         }
     }
 
     var needsDownload: Bool {
         switch self {
         case .apple: return false
-        case .parakeetV2, .parakeetUltra, .bark3, .bark3Clean, .qwen3Asr: return true
+        case .parakeetV2, .parakeetUltra, .bark3, .bark3Clean, .qwen3Asr, .nemotronStreaming: return true
         }
     }
 }
