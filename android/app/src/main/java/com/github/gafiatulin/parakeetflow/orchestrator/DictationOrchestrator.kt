@@ -8,6 +8,7 @@ import com.github.gafiatulin.parakeetflow.context.ContextReader
 import com.github.gafiatulin.parakeetflow.core.model.AppPhase
 import com.github.gafiatulin.parakeetflow.core.model.TranscriptionRecord
 import com.github.gafiatulin.parakeetflow.core.util.FillerWordFilter
+import com.github.gafiatulin.parakeetflow.export.TranscriptExporter
 import com.github.gafiatulin.parakeetflow.feedback.FeedbackManager
 import com.github.gafiatulin.parakeetflow.history.HistoryRepository
 import com.github.gafiatulin.parakeetflow.insertion.TextInserter
@@ -50,7 +51,8 @@ class DictationOrchestrator @Inject constructor(
     private val modelManager: ModelManager,
     private val historyRepository: HistoryRepository,
     private val preferencesDataStore: com.github.gafiatulin.parakeetflow.core.preferences.PreferencesDataStore,
-    private val feedbackManager: FeedbackManager
+    private val feedbackManager: FeedbackManager,
+    private val transcriptExporter: TranscriptExporter
 ) {
     companion object {
         private const val TAG = "DictationOrchestrator"
@@ -253,7 +255,7 @@ class DictationOrchestrator @Inject constructor(
                 }
 
                 // 7. Save to history
-                historyRepository.add(TranscriptionRecord(
+                val record = TranscriptionRecord(
                     id = UUID.randomUUID().toString(),
                     rawText = rawText,
                     filteredText = filteredText,
@@ -264,7 +266,11 @@ class DictationOrchestrator @Inject constructor(
                     asrMillis = asrMillis,
                     llmMillis = llmMillis,
                     totalMillis = System.currentTimeMillis() - processingStart
-                ))
+                )
+                historyRepository.add(record)
+
+                // 8. Optional best-effort export without delaying idle.
+                scope.launch { transcriptExporter.export(record, samples, settings) }
 
                 serviceBridge.updatePhase(AppPhase.IDLE)
                 Log.i(TAG, "Dictation pipeline complete")

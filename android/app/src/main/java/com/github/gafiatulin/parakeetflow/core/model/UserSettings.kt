@@ -17,8 +17,22 @@ data class UserSettings(
     val bubbleOpacity: Float = 1f,
     // While recording, show pause/cancel beside the bubble on the inward side
     // instead of below it.
-    val bubbleControlsBeside: Boolean = true
+    val bubbleControlsBeside: Boolean = true,
+    // Transcript export
+    val mdExportEnabled: Boolean = false,
+    val exportFolderUri: String = "",
+    val mdContentMode: MdContentMode = MdContentMode.FINAL,
+    val mdFrontmatter: Boolean = true,
+    val audioExportEnabled: Boolean = false,
+    val audioFolderUri: String = ""
 )
+
+/** Which text a saved Markdown transcript should contain. */
+enum class MdContentMode {
+    FINAL,
+    RAW,
+    FULL
+}
 
 /** Default idle bubble color (ParakeetGreen, 0xFF4CAF50) as a packed ARGB int. */
 const val DEFAULT_BUBBLE_COLOR: Int = 0xFF4CAF50.toInt()

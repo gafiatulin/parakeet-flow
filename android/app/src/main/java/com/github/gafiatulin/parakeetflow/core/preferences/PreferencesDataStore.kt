@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.github.gafiatulin.parakeetflow.core.model.BubblePosition
 import com.github.gafiatulin.parakeetflow.core.model.DEFAULT_BUBBLE_COLOR
+import com.github.gafiatulin.parakeetflow.core.model.MdContentMode
 import com.github.gafiatulin.parakeetflow.core.model.UserSettings
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -40,6 +41,12 @@ class PreferencesDataStore @Inject constructor(
         val BUBBLE_COLOR = intPreferencesKey("bubble_color")
         val BUBBLE_OPACITY = floatPreferencesKey("bubble_opacity")
         val BUBBLE_CONTROLS_BESIDE = booleanPreferencesKey("bubble_controls_beside")
+        val MD_EXPORT_ENABLED = booleanPreferencesKey("md_export_enabled")
+        val EXPORT_FOLDER_URI = stringPreferencesKey("export_folder_uri")
+        val MD_CONTENT_MODE = stringPreferencesKey("md_content_mode")
+        val MD_FRONTMATTER = booleanPreferencesKey("md_frontmatter")
+        val AUDIO_EXPORT_ENABLED = booleanPreferencesKey("audio_export_enabled")
+        val AUDIO_FOLDER_URI = stringPreferencesKey("audio_folder_uri")
     }
 
     val settings: Flow<UserSettings> = context.dataStore.data.map { prefs ->
@@ -60,7 +67,15 @@ class PreferencesDataStore @Inject constructor(
             bubbleSizeDp = prefs[Keys.BUBBLE_SIZE_DP] ?: 64,
             bubbleColor = prefs[Keys.BUBBLE_COLOR] ?: DEFAULT_BUBBLE_COLOR,
             bubbleOpacity = prefs[Keys.BUBBLE_OPACITY] ?: 1f,
-            bubbleControlsBeside = prefs[Keys.BUBBLE_CONTROLS_BESIDE] ?: true
+            bubbleControlsBeside = prefs[Keys.BUBBLE_CONTROLS_BESIDE] ?: true,
+            mdExportEnabled = prefs[Keys.MD_EXPORT_ENABLED] ?: false,
+            exportFolderUri = prefs[Keys.EXPORT_FOLDER_URI] ?: "",
+            mdContentMode = prefs[Keys.MD_CONTENT_MODE]
+                ?.let { runCatching { MdContentMode.valueOf(it) }.getOrNull() }
+                ?: MdContentMode.FINAL,
+            mdFrontmatter = prefs[Keys.MD_FRONTMATTER] ?: true,
+            audioExportEnabled = prefs[Keys.AUDIO_EXPORT_ENABLED] ?: false,
+            audioFolderUri = prefs[Keys.AUDIO_FOLDER_URI] ?: ""
         )
     }
 
@@ -121,5 +136,29 @@ class PreferencesDataStore @Inject constructor(
 
     suspend fun setBubbleControlsBeside(beside: Boolean) {
         context.dataStore.edit { it[Keys.BUBBLE_CONTROLS_BESIDE] = beside }
+    }
+
+    suspend fun setMdExportEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.MD_EXPORT_ENABLED] = enabled }
+    }
+
+    suspend fun setExportFolderUri(uri: String) {
+        context.dataStore.edit { it[Keys.EXPORT_FOLDER_URI] = uri }
+    }
+
+    suspend fun setMdContentMode(mode: MdContentMode) {
+        context.dataStore.edit { it[Keys.MD_CONTENT_MODE] = mode.name }
+    }
+
+    suspend fun setMdFrontmatter(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.MD_FRONTMATTER] = enabled }
+    }
+
+    suspend fun setAudioExportEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.AUDIO_EXPORT_ENABLED] = enabled }
+    }
+
+    suspend fun setAudioFolderUri(uri: String) {
+        context.dataStore.edit { it[Keys.AUDIO_FOLDER_URI] = uri }
     }
 }

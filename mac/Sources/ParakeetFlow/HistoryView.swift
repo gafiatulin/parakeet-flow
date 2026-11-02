@@ -148,6 +148,16 @@ struct HistoryView: View {
         .frame(minWidth: 480, minHeight: 340)
         .toolbar {
             if !entries.isEmpty {
+                ToolbarItem(placement: .primaryAction) {
+                    Menu("Export") {
+                        Button("Markdown…") {
+                            HistoryExporter.export(filteredEntries, as: .markdown)
+                        }
+                        Button("JSON…") {
+                            HistoryExporter.export(filteredEntries, as: .json)
+                        }
+                    }
+                }
                 ToolbarItem(placement: .destructiveAction) {
                     Button("Clear All") {
                         showClearConfirmation = true
