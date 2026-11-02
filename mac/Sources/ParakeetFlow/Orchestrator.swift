@@ -194,7 +194,18 @@ final class Orchestrator {
                     return
                 }
 
-                batchStartSession()
+                await batchStartSession { [weak self] text in
+                    Task { @MainActor [weak self] in
+                        self?.appState.partialTranscription = text
+                    }
+                }
+
+                guard isRecordingOrPending else {
+                    await batchCancelSession()
+                    cleanUpRecordingUI()
+                    return
+                }
+
                 let format = batchTargetFormat()
                 let feedAudio = batchFeedAudioClosure()
 
@@ -233,6 +244,7 @@ final class Orchestrator {
             }
         } catch {
             recordingStartedAt = nil
+            await batchCancelSession()
             if appState.isRecordingOverlayEnabled {
                 overlayController.dismiss()
             }
@@ -385,7 +397,9 @@ final class Orchestrator {
         }
 
         await audioCapture.stopCapture()
-        if !useBatchEngine {
+        if useBatchEngine {
+            await batchCancelSession()
+        } else {
             _ = try? await transcriptionEngine.finishSession()
         }
 
@@ -395,10 +409,18 @@ final class Orchestrator {
 
     // MARK: - Batch engine helpers
 
-    private func batchStartSession() {
+    private func batchStartSession(onPartial: @escaping @Sendable (String) -> Void) async {
         switch appState.asrBackend {
-        case .parakeetV2: parakeetV2Engine.startSession()
-        case .parakeetUltra: parakeetUltraEngine.startSession()
+        case .parakeetV2: await parakeetV2Engine.startSession(onPartial: onPartial)
+        case .parakeetUltra: await parakeetUltraEngine.startSession(onPartial: onPartial)
+        case .apple: break
+        }
+    }
+
+    private func batchCancelSession() async {
+        switch appState.asrBackend {
+        case .parakeetV2: await parakeetV2Engine.cancelSession()
+        case .parakeetUltra: await parakeetUltraEngine.cancelSession()
         case .apple: break
         }
     }
