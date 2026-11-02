@@ -86,7 +86,9 @@ class BubbleOverlayManager @Inject constructor() {
         onHoldStart: () -> Unit,
         onHoldEnd: () -> Unit,
         onDismiss: () -> Unit,
-        onPositionChanged: (BubblePosition) -> Unit
+        onPositionChanged: (BubblePosition) -> Unit,
+        onCancel: () -> Unit,
+        onPauseResume: () -> Unit
     ) {
         if (bubbleView != null) return
 
@@ -151,7 +153,9 @@ class BubbleOverlayManager @Inject constructor() {
                     onHoldEnd = onHoldEnd,
                     onDragStart = { onDragStarted(context) },
                     onDrag = { delta -> handleDrag(delta) },
-                    onDragEnd = { handleDragEnd() }
+                    onDragEnd = { handleDragEnd() },
+                    onCancel = onCancel,
+                    onPauseResume = onPauseResume
                 )
             }
         }

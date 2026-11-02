@@ -134,6 +134,14 @@ class DictationService : Service() {
                     serviceScope.launch {
                         preferencesDataStore.setBubblePosition(pos)
                     }
+                },
+                onCancel = { orchestrator.cancelRecording() },
+                onPauseResume = {
+                    if (serviceBridge.phase.value == AppPhase.PAUSED) {
+                        orchestrator.resumeRecording()
+                    } else {
+                        orchestrator.pauseRecording()
+                    }
                 }
             )
         }
@@ -155,7 +163,7 @@ class DictationService : Service() {
             serviceBridge.textFieldFocused.collect { focused ->
                 if (!focused && bubbleOverlayManager.isShowing) {
                     val phase = serviceBridge.phase.value
-                    if (phase == AppPhase.RECORDING || phase == AppPhase.PROCESSING || phase == AppPhase.INSERTING) {
+                    if (phase == AppPhase.RECORDING || phase == AppPhase.PAUSED || phase == AppPhase.PROCESSING || phase == AppPhase.INSERTING) {
                         Log.d(TAG, "Focus lost but pipeline active, keeping bubble")
                         return@collect
                     }
@@ -177,6 +185,7 @@ class DictationService : Service() {
                 val text = when (phase) {
                     AppPhase.IDLE -> "ParakeetFlow ready"
                     AppPhase.RECORDING -> "Recording..."
+                    AppPhase.PAUSED -> "Paused"
                     AppPhase.PROCESSING -> "Processing..."
                     AppPhase.INSERTING -> if (serviceBridge.textFieldFocused.value) "Inserting text..." else "Copied to clipboard"
                     AppPhase.ERROR -> "Error occurred"
