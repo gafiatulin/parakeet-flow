@@ -93,6 +93,9 @@ struct GeneralSettingsView: View {
                 .onChange(of: appState.asrBackend) { _, _ in
                     orchestrator?.checkModelStatus()
                 }
+                Text(appState.asrBackend.detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
                 if appState.asrBackend.needsDownload {
                     HStack {
@@ -194,6 +197,9 @@ struct GeneralSettingsView: View {
                     }
 
                     if appState.llmBackend == .mlx {
+                        Text(appState.mlxModel.detail)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                         HStack {
                             switch appState.mlxModelStatus[appState.mlxModel] ?? .notDownloaded {
                             case .ready:

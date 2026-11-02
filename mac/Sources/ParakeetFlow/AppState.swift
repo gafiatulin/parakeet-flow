@@ -138,6 +138,25 @@ enum AsrBackend: String, CaseIterable {
         case .parakeetV2, .parakeetUltra, .bark3, .bark3Clean, .qwen3Asr, .nemotronStreaming: return true
         }
     }
+
+    var detail: String {
+        switch self {
+        case .apple:
+            return "Built-in · streaming · zero download"
+        case .parakeetV2:
+            return "English · ~473 MB · batch"
+        case .parakeetUltra:
+            return "25 European languages · ~630 MB · live partials · recommended"
+        case .bark3:
+            return "English · 163 MB download · live · tiny"
+        case .bark3Clean:
+            return "English dictation · filler cleanup · 180 MB download"
+        case .qwen3Asr:
+            return "30 languages + 22 Chinese dialects · ~945 MB · batch"
+        case .nemotronStreaming:
+            return "40 locales · true streaming · ~1.5 GB"
+        }
+    }
 }
 
 enum LlmBackend: String, CaseIterable {
@@ -161,6 +180,19 @@ enum MlxModelChoice: String, CaseIterable {
     case qwen35_2b = "mlx-community/Qwen3.5-2B-6bit"
     case phi4mini = "mlx-community/Phi-4-mini-instruct-4bit"
     case llama32_3b = "mlx-community/Llama-3.2-3B-Instruct-4bit"
+
+    var detail: String {
+        switch self {
+        case .qwen35_08b_cleanup:
+            return "English transcript cleanup · 518 MB · default"
+        case .qwen35_2b:
+            return "Generic Qwen 3.5 2B · larger, more flexible"
+        case .phi4mini:
+            return "Microsoft Phi-4 Mini · generic cleanup"
+        case .llama32_3b:
+            return "Llama 3.2 3B · generic cleanup"
+        }
+    }
 
     var label: String {
         switch self {
