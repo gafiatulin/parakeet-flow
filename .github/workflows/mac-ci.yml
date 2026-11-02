@@ -26,7 +26,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: mac/DerivedData/SourcePackages
-          key: spm-${{ runner.os }}-${{ hashFiles('mac/Package.swift', 'mac/Package.resolved') }}
+          key: spm-${{ runner.os }}-${{ hashFiles('mac/Package.swift', 'mac/Package.resolved', 'mac/project.yml') }}
           restore-keys: spm-${{ runner.os }}-
 
       - name: Install XcodeGen
@@ -41,6 +41,7 @@ jobs:
         run: >
           xcodebuild build -scheme ParakeetFlow -configuration Debug
           -clonedSourcePackagesDirPath DerivedData/SourcePackages
+          -skipPackagePluginValidation -skipMacroValidation
           -quiet
 
       - name: Test
@@ -48,4 +49,5 @@ jobs:
         run: >
           xcodebuild test -scheme ParakeetFlow -configuration Debug
           -clonedSourcePackagesDirPath DerivedData/SourcePackages
+          -skipPackagePluginValidation -skipMacroValidation
           -quiet

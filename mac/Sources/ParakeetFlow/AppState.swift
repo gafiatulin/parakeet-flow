@@ -95,24 +95,20 @@ enum WaveformColor: String, CaseIterable {
 enum AsrBackend: String, CaseIterable {
     case apple
     case parakeetV2
-    case parakeet
-    case qwen3Asr
-    case qwen3AsrInt8
+    case parakeetUltra
 
     var label: String {
         switch self {
         case .apple: return "Apple Speech"
         case .parakeetV2: return "Parakeet TDT v2 (EN)"
-        case .parakeet: return "Parakeet TDT v3 (Multilingual)"
-        case .qwen3Asr: return "Qwen3 ASR"
-        case .qwen3AsrInt8: return "Qwen3 ASR Int8"
+        case .parakeetUltra: return "Parakeet Ultra (Multilingual)"
         }
     }
 
     var needsDownload: Bool {
         switch self {
         case .apple: return false
-        case .parakeetV2, .parakeet, .qwen3Asr, .qwen3AsrInt8: return true
+        case .parakeetV2, .parakeetUltra: return true
         }
     }
 }
@@ -279,7 +275,14 @@ final class AppState {
         self.waveformColor = WaveformColor(rawValue: defaults.string(forKey: "waveformColor") ?? "") ?? .bluePurple
         self.pasteMethod = PasteMethod(rawValue: defaults.string(forKey: "pasteMethod") ?? "") ?? .paste
         self.hotkeyChoice = HotkeyChoice(rawValue: defaults.string(forKey: "hotkeyChoice") ?? "") ?? .option
-        self.asrBackend = AsrBackend(rawValue: defaults.string(forKey: "asrBackend") ?? "") ?? .apple
+        let savedAsrBackend = defaults.string(forKey: "asrBackend") ?? ""
+        if savedAsrBackend == "qwen3Asr" || savedAsrBackend == "qwen3AsrInt8" || savedAsrBackend == "parakeet" {
+            // Qwen3 ASR and Parakeet v3 were removed; migrate those users to Ultra.
+            self.asrBackend = .parakeetUltra
+            defaults.set(AsrBackend.parakeetUltra.rawValue, forKey: "asrBackend")
+        } else {
+            self.asrBackend = AsrBackend(rawValue: savedAsrBackend) ?? .apple
+        }
         self.llmBackend = LlmBackend(rawValue: defaults.string(forKey: "llmBackend") ?? "") ?? .apple
         self.mlxModel = MlxModelChoice(rawValue: defaults.string(forKey: "mlxModel") ?? "") ?? .qwen35_2b
         self.hasCompletedOnboarding = defaults.bool(forKey: "hasCompletedOnboarding")
