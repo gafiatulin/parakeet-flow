@@ -3,6 +3,7 @@ package com.github.gafiatulin.parakeetflow.orchestrator
 import android.util.Log
 import com.github.gafiatulin.parakeetflow.asr.TranscriptionEngine
 import com.github.gafiatulin.parakeetflow.audio.AudioCaptureManager
+import com.github.gafiatulin.parakeetflow.audio.SileroVadSegmenter
 import com.github.gafiatulin.parakeetflow.audio.SpeechActivityDetector
 import com.github.gafiatulin.parakeetflow.context.ContextReader
 import com.github.gafiatulin.parakeetflow.core.model.AppPhase
@@ -52,7 +53,8 @@ class DictationOrchestrator @Inject constructor(
     private val historyRepository: HistoryRepository,
     private val preferencesDataStore: com.github.gafiatulin.parakeetflow.core.preferences.PreferencesDataStore,
     private val feedbackManager: FeedbackManager,
-    private val transcriptExporter: TranscriptExporter
+    private val transcriptExporter: TranscriptExporter,
+    private val vadSegmenter: SileroVadSegmenter
 ) {
     companion object {
         private const val TAG = "DictationOrchestrator"
@@ -195,7 +197,13 @@ class DictationOrchestrator @Inject constructor(
                 }
                 Log.d(TAG, "Captured ${samples.size} samples (${samples.size / AudioCaptureManager.SAMPLE_RATE}s)")
 
-                if (!SpeechActivityDetector.containsSpeech(samples)) {
+                val vadSegments = vadSegmenter.segments(samples)
+                val speechSegments = when {
+                    vadSegments.isNotEmpty() -> vadSegments
+                    SpeechActivityDetector.containsSpeech(samples) -> listOf(samples)
+                    else -> emptyList()
+                }
+                if (speechSegments.isEmpty()) {
                     Log.d(TAG, "Speech gate rejected silent capture")
                     serviceBridge.updatePhase(AppPhase.IDLE)
                     return@launch
@@ -214,7 +222,16 @@ class DictationOrchestrator @Inject constructor(
                     }
                 }
                 val asrStart = System.currentTimeMillis()
-                val rawText = transcriptionEngine.transcribe(samples)
+                val rawText = if (speechSegments.size == 1 &&
+                    speechSegments.first().size >= samples.size * 9 / 10
+                ) {
+                    transcriptionEngine.transcribe(samples)
+                } else {
+                    Log.d(TAG, "Transcribing ${speechSegments.size} VAD segment(s)")
+                    speechSegments.mapNotNull { segment ->
+                        transcriptionEngine.transcribe(segment).takeIf { it.isNotBlank() }
+                    }.joinToString(" ")
+                }
                 val asrMillis = System.currentTimeMillis() - asrStart
                 if (rawText.isBlank()) {
                     Log.d(TAG, "Transcription produced empty text")
