@@ -12,10 +12,17 @@ options:
 packages:
   FluidAudio:
     url: https://github.com/FluidInference/FluidAudio.git
-    branch: main
+    # Pinned for reproducible builds.
+    exactVersion: 0.18.2
   mlx-swift-lm:
     url: https://github.com/ml-explore/mlx-swift-lm.git
-    branch: main
+    exactVersion: 3.32.3
+  swift-huggingface:
+    url: https://github.com/huggingface/swift-huggingface.git
+    exactVersion: 0.13.0
+  swift-transformers:
+    url: https://github.com/huggingface/swift-transformers.git
+    exactVersion: 1.4.0
 
 targets:
   ParakeetFlow:
@@ -31,6 +38,14 @@ targets:
       - package: FluidAudio
       - package: mlx-swift-lm
         product: MLXLLM
+      - package: mlx-swift-lm
+        product: MLXLMCommon
+      - package: mlx-swift-lm
+        product: MLXHuggingFace
+      - package: swift-huggingface
+        product: HuggingFace
+      - package: swift-transformers
+        product: Tokenizers
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.github.gafiatulin.ParakeetFlow

@@ -14,7 +14,7 @@ Hold a hotkey to record, release to transcribe and insert cleaned-up text at the
 - **Custom dictionary** with fuzzy + phonetic matching (Levenshtein + Soundex) for names, technical terms, and frequently misheard words
 - **Recording overlay** with animated waveform indicator
 - **Transcription history** stored in SwiftData with full pipeline visibility
-- **Alternative ASR backends** via FluidAudio (Parakeet TDT v2/v3, Qwen3 ASR)
+- **Alternative ASR backends** via FluidAudio (Parakeet TDT v2 (English), Parakeet Ultra (Multilingual))
 
 ## Requirements
 
@@ -99,7 +99,7 @@ Quick-tap the hotkey for hands-free mode (tap again to stop). Press Escape to ca
 
 All settings are accessible from the menu bar icon → Settings:
 
-- **ASR backend** — Apple Speech (built-in), Parakeet TDT v2/v3, Qwen3 ASR
+- **ASR backend** — Apple Speech (built-in), Parakeet TDT v2 (English), Parakeet Ultra (Multilingual)
 - **LLM backend** — Apple Intelligence, MLX (Qwen 3.5, Phi-4 Mini, Llama 3.2)
 - **Hotkey** — Option, Command, Control, or Fn
 - **Paste method** — Cmd+V, Accessibility API, key-by-key typing, or clipboard only

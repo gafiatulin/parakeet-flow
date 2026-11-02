@@ -58,7 +58,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: mac/DerivedData/SourcePackages
-          key: spm-${{ runner.os }}-${{ hashFiles('mac/Package.swift', 'mac/Package.resolved') }}
+          key: spm-${{ runner.os }}-${{ hashFiles('mac/Package.swift', 'mac/Package.resolved', 'mac/project.yml') }}
           restore-keys: spm-${{ runner.os }}-
 
       - name: Install XcodeGen
@@ -74,6 +74,7 @@ jobs:
           xcodebuild build -scheme ParakeetFlow -configuration Release
           -clonedSourcePackagesDirPath DerivedData/SourcePackages
           -derivedDataPath build
+          -skipPackagePluginValidation -skipMacroValidation
           CODE_SIGN_STYLE=Manual
           CODE_SIGN_IDENTITY="ParakeetFlow Self-Signed"
           OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN_PATH"
@@ -84,6 +85,7 @@ jobs:
         run: >
           xcodebuild test -scheme ParakeetFlow -configuration Debug
           -clonedSourcePackagesDirPath DerivedData/SourcePackages
+          -skipPackagePluginValidation -skipMacroValidation
           -quiet
 
       - name: Create DMG

@@ -5,8 +5,11 @@ let package = Package(
     name: "ParakeetFlow",
     platforms: [.macOS(.v15)],
     dependencies: [
-        .package(url: "https://github.com/FluidInference/FluidAudio.git", branch: "main"),
-        .package(url: "https://github.com/ml-explore/mlx-swift-lm.git", branch: "main"),
+        // Pinned for reproducible builds.
+        .package(url: "https://github.com/FluidInference/FluidAudio.git", exact: "0.18.2"),
+        .package(url: "https://github.com/ml-explore/mlx-swift-lm.git", exact: "3.32.3"),
+        .package(url: "https://github.com/huggingface/swift-huggingface.git", exact: "0.13.0"),
+        .package(url: "https://github.com/huggingface/swift-transformers.git", exact: "1.4.0"),
     ],
     targets: [
         .executableTarget(
@@ -14,6 +17,10 @@ let package = Package(
             dependencies: [
                 .product(name: "FluidAudio", package: "FluidAudio"),
                 .product(name: "MLXLLM", package: "mlx-swift-lm"),
+                .product(name: "MLXLMCommon", package: "mlx-swift-lm"),
+                .product(name: "MLXHuggingFace", package: "mlx-swift-lm"),
+                .product(name: "HuggingFace", package: "swift-huggingface"),
+                .product(name: "Tokenizers", package: "swift-transformers"),
             ],
             path: "Sources/ParakeetFlow",
             exclude: ["Resources/Info.plist"]
