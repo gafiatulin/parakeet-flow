@@ -67,6 +67,13 @@ Requires JDK 17+ and Android SDK with API 36.
 
 Release APK: `app/build/outputs/apk/release/app-release.apk`
 
+### Releases
+
+Tag pushes (`v*`) build and publish a signed APK from GitHub Actions. To make
+new APKs install over older versions, configure a persistent signing keystore
+once — see [docs/SIGNING.md](../docs/SIGNING.md). Without it, the workflow builds
+with a temporary key and Android requires uninstalling the previous APK first.
+
 ### Key Build Config
 
 | Component | Version |

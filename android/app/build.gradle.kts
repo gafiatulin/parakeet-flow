@@ -30,8 +30,11 @@ android {
         applicationId = "com.github.gafiatulin.parakeetflow"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        // Driven by .github/workflows/release.yml: VERSION_CODE comes from the
+        // CI run number and VERSION_NAME from the git tag, so each release can
+        // install over the previous one.
+        versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1
+        versionName = System.getenv("VERSION_NAME") ?: "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -46,6 +49,7 @@ android {
             val ks = file(System.getenv("RELEASE_KEYSTORE") ?: "release.keystore")
             if (ks.exists()) {
                 storeFile = ks
+                storeType = System.getenv("RELEASE_KEYSTORE_TYPE") ?: "PKCS12"
                 storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD") ?: ""
                 keyAlias = System.getenv("RELEASE_KEY_ALIAS") ?: ""
                 keyPassword = System.getenv("RELEASE_KEY_PASSWORD") ?: ""
