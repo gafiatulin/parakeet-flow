@@ -125,6 +125,7 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          KEYSTORE_TYPE: ${{ vars.RELEASE_KEYSTORE_TYPE }}
         run: |
           KEYSTORE_PATH="$RUNNER_TEMP/release.keystore"
 
@@ -155,6 +156,10 @@ jobs:
             echo "RELEASE_KEY_ALIAS=release" >> "$GITHUB_ENV"
             echo "RELEASE_KEY_PASSWORD=$GEN_PASSWORD" >> "$GITHUB_ENV"
           fi
+
+          # PKCS12 is the modern keytool default; set the RELEASE_KEYSTORE_TYPE
+          # repository variable to JKS for an older keystore.
+          echo "RELEASE_KEYSTORE_TYPE=${KEYSTORE_TYPE:-PKCS12}" >> "$GITHUB_ENV"
 
       - name: Compute version
         run: |

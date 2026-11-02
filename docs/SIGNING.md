@@ -87,9 +87,8 @@ Or via the web UI: **Settings → Secrets and variables → Actions → New repo
 | `RELEASE_KEY_ALIAS` | `release` |
 | `RELEASE_KEY_PASSWORD` | the key password |
 
-If your keystore is an older JKS file, also set
-`RELEASE_KEYSTORE_TYPE=JKS` in the workflow environment if needed. The default
-is PKCS12.
+The workflow defaults to PKCS12. If your keystore is an older JKS file, set the
+optional repository variable `RELEASE_KEYSTORE_TYPE` to `JKS`.
 
 ## 4. Build a release
 

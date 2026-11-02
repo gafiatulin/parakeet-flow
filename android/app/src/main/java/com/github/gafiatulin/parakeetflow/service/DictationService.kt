@@ -41,6 +41,7 @@ class DictationService : Service() {
         const val ACTION_STOP = "com.github.gafiatulin.parakeetflow.STOP"
         const val ACTION_TOGGLE_RECORDING = "com.github.gafiatulin.parakeetflow.TOGGLE"
         const val ACTION_RELOAD = "com.github.gafiatulin.parakeetflow.RELOAD"
+        const val ACTION_REFRESH_BUBBLE = "com.github.gafiatulin.parakeetflow.REFRESH_BUBBLE"
     }
 
     @Inject lateinit var orchestrator: DictationOrchestrator
@@ -90,6 +91,13 @@ class DictationService : Service() {
                 orchestrator.cancelRecording()
                 initializeEngine(force = true)
             }
+            ACTION_REFRESH_BUBBLE -> {
+                // Re-show with the latest appearance settings without reloading ASR.
+                if (bubbleOverlayManager.isShowing) {
+                    bubbleOverlayManager.dismiss()
+                    showBubble()
+                }
+            }
             else -> {
                 Log.w(TAG, "Unknown action: ${intent?.action}")
             }
@@ -122,6 +130,10 @@ class DictationService : Service() {
             bubbleOverlayManager.show(
                 context = this@DictationService,
                 initialPosition = settings.bubblePosition,
+                bubbleSizeDp = settings.bubbleSizeDp,
+                bubbleColorArgb = settings.bubbleColor,
+                bubbleOpacity = settings.bubbleOpacity,
+                controlsBeside = settings.bubbleControlsBeside,
                 onTap = { orchestrator.toggleRecording() },
                 onHoldStart = { orchestrator.startRecording() },
                 onHoldEnd = { orchestrator.stopRecordingAndProcess() },

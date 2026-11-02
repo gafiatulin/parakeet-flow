@@ -1,6 +1,6 @@
 # ParakeetFlow Android
 
-On-device voice dictation for Android. Tap or hold the floating bubble to transcribe speech and insert text into any app via AccessibilityService. Optional LLM post-processing cleans up grammar and punctuation.
+On-device voice dictation for Android. Tap or hold the floating bubble to transcribe speech and insert text into any app via AccessibilityService. Drag it anywhere on screen, including over the status bar. While recording, pause/resume or cancel from the bubble. Bubble size, color, opacity, and control placement are configurable in Settings. Optional LLM post-processing cleans up grammar and punctuation.
 
 ## Architecture
 
