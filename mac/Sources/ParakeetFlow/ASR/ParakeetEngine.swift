@@ -26,7 +26,7 @@ final class ParakeetEngine: @unchecked Sendable {
         guard asrManager == nil else { return }
         let models = try await AsrModels.downloadAndLoad(version: version)
         let manager = AsrManager(config: .default)
-        try await manager.initialize(models: models)
+        try await manager.loadModels(models)
         asrManager = manager
     }
 
@@ -61,7 +61,11 @@ final class ParakeetEngine: @unchecked Sendable {
             // Less than 1 second of audio — not enough for Parakeet
             return ""
         }
-        let result = try await asrManager.transcribe(audioSamples)
+        var decoderState = TdtDecoderState.make(decoderLayers: await asrManager.decoderLayerCount)
+        let result = try await asrManager.transcribe(
+            audioSamples,
+            decoderState: &decoderState
+        )
         return result.text
     }
 }
