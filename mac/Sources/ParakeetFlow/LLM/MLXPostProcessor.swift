@@ -46,6 +46,10 @@ final class MLXPostProcessor: @unchecked Sendable {
         }
 
         if modelID == MlxModelChoice.qwen35_08b_cleanup.modelID {
+            guard CleanupGuardrails.isMostlyLatin(rawText) else {
+                // The cleanup fine-tune is English-only; preserve other languages verbatim.
+                return rawText.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
             return try await cleanupWithDictationModel(container, rawText: rawText)
         }
 
@@ -107,8 +111,8 @@ final class MLXPostProcessor: @unchecked Sendable {
             generateParameters: GenerateParameters(temperature: 0.2)
         )
         let response = try await session.respond(to: user)
-        let cleaned = Self.extractCleanedText(response) ?? response
-        return Self.guardCleanup(cleaned, raw: rawText)
+        let cleaned = CleanupGuardrails.extractCleanedText(response) ?? response
+        return CleanupGuardrails.guardCleanup(cleaned, raw: rawText)
     }
 
     /// Release the model from memory.
@@ -147,31 +151,3 @@ enum MLXPostProcessorError: LocalizedError {
     }
 }
 
-
-private extension MLXPostProcessor {
-    static func extractCleanedText(_ response: String) -> String? {
-        var text = response.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let start = text.firstIndex(of: "{"), let end = text.lastIndex(of: "}") {
-            let json = String(text[start...end])
-            if let data = json.data(using: .utf8),
-               let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let cleaned = object["cleaned_text"] as? String {
-                return cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
-            }
-        }
-        if let thinkEnd = text.range(of: "</think>") {
-            text = String(text[thinkEnd.upperBound...])
-        }
-        return text.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    static func guardCleanup(_ cleaned: String, raw: String) -> String {
-        let rawTrimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        let candidate = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !candidate.isEmpty, !rawTrimmed.isEmpty else { return rawTrimmed }
-        // Refuse obviously destructive or runaway rewrites.
-        if candidate.count < max(4, rawTrimmed.count / 4) { return rawTrimmed }
-        if candidate.count > max(80, rawTrimmed.count * 2) { return rawTrimmed }
-        return candidate
-    }
-}
