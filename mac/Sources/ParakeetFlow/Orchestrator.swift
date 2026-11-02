@@ -505,6 +505,153 @@ final class Orchestrator {
         }
     }
 
+    // MARK: - Benchmark
+
+    @MainActor
+    func runBenchmark() async -> ModelBenchmarkResult? {
+        guard let samples = try? BenchmarkAudio.samples() else { return nil }
+        let audioMilliseconds = Double(samples.count) / 16.0
+        let backend = appState.asrBackend.label
+
+        switch appState.asrBackend {
+        case .parakeetV2:
+            return await benchmark(parakeetV2Engine, backend: backend, samples: samples, audioMilliseconds: audioMilliseconds)
+        case .parakeetUltra:
+            return await benchmark(parakeetUltraEngine, backend: backend, samples: samples, audioMilliseconds: audioMilliseconds)
+        case .bark3:
+            return await benchmark(bark3Engine, backend: backend, samples: samples, audioMilliseconds: audioMilliseconds)
+        case .bark3Clean:
+            return await benchmark(bark3CleanEngine, backend: backend, samples: samples, audioMilliseconds: audioMilliseconds)
+        case .qwen3Asr:
+            return await benchmark(qwen3Engine, backend: backend, samples: samples, audioMilliseconds: audioMilliseconds)
+        case .nemotronStreaming:
+            return await benchmark(nemotronEngine, backend: backend, samples: samples, audioMilliseconds: audioMilliseconds)
+        case .apple:
+            return await benchmark(transcriptionEngine, backend: backend, samples: samples, audioMilliseconds: audioMilliseconds)
+        }
+    }
+
+    private func benchmark(
+        _ engine: ParakeetEngine, backend: String, samples: [Float], audioMilliseconds: Double
+    ) async -> ModelBenchmarkResult {
+        let loadStart = CFAbsoluteTimeGetCurrent()
+        do {
+            try await engine.ensureModelLoaded()
+            let loadMs = (CFAbsoluteTimeGetCurrent() - loadStart) * 1000
+            await engine.startSession { _ in }
+            feed(samples) { engine.feedAudio($0) }
+            let inferenceStart = CFAbsoluteTimeGetCurrent()
+            let text = try await engine.finishSession()
+            let inferenceMs = (CFAbsoluteTimeGetCurrent() - inferenceStart) * 1000
+            return ModelBenchmarkResult(
+                backend: backend, loadMilliseconds: loadMs,
+                inferenceMilliseconds: inferenceMs,
+                audioMilliseconds: audioMilliseconds, transcript: text
+            )
+        } catch {
+            return ModelBenchmarkResult(
+                backend: backend, loadMilliseconds: 0, inferenceMilliseconds: 0,
+                audioMilliseconds: audioMilliseconds, transcript: "Failed: \(error.localizedDescription)"
+            )
+        }
+    }
+
+    private func benchmark(
+        _ engine: Qwen3AsrEngine, backend: String, samples: [Float], audioMilliseconds: Double
+    ) async -> ModelBenchmarkResult {
+        let loadStart = CFAbsoluteTimeGetCurrent()
+        do {
+            try await engine.ensureModelLoaded()
+            let loadMs = (CFAbsoluteTimeGetCurrent() - loadStart) * 1000
+            await engine.startSession { _ in }
+            feed(samples) { engine.feedAudio($0) }
+            let inferenceStart = CFAbsoluteTimeGetCurrent()
+            let text = try await engine.finishSession()
+            let inferenceMs = (CFAbsoluteTimeGetCurrent() - inferenceStart) * 1000
+            return ModelBenchmarkResult(
+                backend: backend, loadMilliseconds: loadMs,
+                inferenceMilliseconds: inferenceMs,
+                audioMilliseconds: audioMilliseconds, transcript: text
+            )
+        } catch {
+            return ModelBenchmarkResult(
+                backend: backend, loadMilliseconds: 0, inferenceMilliseconds: 0,
+                audioMilliseconds: audioMilliseconds, transcript: "Failed: \(error.localizedDescription)"
+            )
+        }
+    }
+
+    private func benchmark(
+        _ engine: NemotronStreamingEngine, backend: String, samples: [Float], audioMilliseconds: Double
+    ) async -> ModelBenchmarkResult {
+        let loadStart = CFAbsoluteTimeGetCurrent()
+        do {
+            try await engine.ensureModelLoaded()
+            let loadMs = (CFAbsoluteTimeGetCurrent() - loadStart) * 1000
+            await engine.startSession { _ in }
+            feed(samples) { engine.feedAudio($0) }
+            let inferenceStart = CFAbsoluteTimeGetCurrent()
+            let text = try await engine.finishSession()
+            let inferenceMs = (CFAbsoluteTimeGetCurrent() - inferenceStart) * 1000
+            return ModelBenchmarkResult(
+                backend: backend, loadMilliseconds: loadMs,
+                inferenceMilliseconds: inferenceMs,
+                audioMilliseconds: audioMilliseconds, transcript: text
+            )
+        } catch {
+            return ModelBenchmarkResult(
+                backend: backend, loadMilliseconds: 0, inferenceMilliseconds: 0,
+                audioMilliseconds: audioMilliseconds, transcript: "Failed: \(error.localizedDescription)"
+            )
+        }
+    }
+
+    private func benchmark(
+        _ engine: TranscriptionEngine, backend: String, samples: [Float], audioMilliseconds: Double
+    ) async -> ModelBenchmarkResult {
+        let inferenceStart = CFAbsoluteTimeGetCurrent()
+        do {
+            _ = try await engine.startSession { _ in }
+            feed(samples) { engine.feedAudio($0) }
+            let text = try await engine.finishSession()
+            let inferenceMs = (CFAbsoluteTimeGetCurrent() - inferenceStart) * 1000
+            return ModelBenchmarkResult(
+                backend: backend, loadMilliseconds: 0,
+                inferenceMilliseconds: inferenceMs,
+                audioMilliseconds: audioMilliseconds, transcript: text
+            )
+        } catch {
+            return ModelBenchmarkResult(
+                backend: backend, loadMilliseconds: 0, inferenceMilliseconds: 0,
+                audioMilliseconds: audioMilliseconds, transcript: "Failed: \(error.localizedDescription)"
+            )
+        }
+    }
+
+    private func feed(_ samples: [Float], to receive: (AVAudioPCMBuffer) -> Void) {
+        let format = AVAudioFormat(
+            commonFormat: .pcmFormatFloat32,
+            sampleRate: 16000,
+            channels: 1,
+            interleaved: false
+        )!
+        let chunkSize = 1600
+        var offset = 0
+        while offset < samples.count {
+            let count = min(chunkSize, samples.count - offset)
+            let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(count))!
+            buffer.frameLength = AVAudioFrameCount(count)
+            samples.withUnsafeBufferPointer { source in
+                buffer.floatChannelData![0].update(
+                    from: source.baseAddress!.advanced(by: offset),
+                    count: count
+                )
+            }
+            receive(buffer)
+            offset += count
+        }
+    }
+
     // MARK: - Model status
 
     func checkModelStatus() {

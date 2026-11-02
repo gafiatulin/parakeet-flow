@@ -3,8 +3,11 @@ import SwiftData
 
 @available(macOS 26, *)
 struct PerformanceSettingsView: View {
+    var orchestrator: Orchestrator?
     @Query(sort: \TranscriptionEntry.timestamp, order: .reverse)
     private var entries: [TranscriptionEntry]
+    @State private var benchmark: ModelBenchmarkResult?
+    @State private var isBenchmarking = false
 
     private var timedEntries: [TranscriptionEntry] {
         entries.filter { $0.asrDurationMs > 0 && $0.audioDurationMs > 0 }
@@ -23,7 +26,37 @@ struct PerformanceSettingsView: View {
 
     var body: some View {
         Form {
-            Section("Benchmarks") {
+            Section("Active model benchmark") {
+                Text("Runs the selected ASR model on generated speech. The first run may download the model.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Button(isBenchmarking ? "Benchmarking…" : "Run benchmark") {
+                    isBenchmarking = true
+                    Task {
+                        benchmark = await orchestrator?.runBenchmark()
+                        isBenchmarking = false
+                    }
+                }
+                .disabled(orchestrator == nil || isBenchmarking)
+
+                if let benchmark {
+                    LabeledContent("Model", value: benchmark.backend)
+                    LabeledContent("Load") {
+                        Text(String(format: "%.0f ms", benchmark.loadMilliseconds))
+                    }
+                    LabeledContent("Inference") {
+                        Text(String(format: "%.0f ms", benchmark.inferenceMilliseconds))
+                    }
+                    LabeledContent("ASR speed") {
+                        Text(String(format: "%.1f× realtime", benchmark.realtimeFactor))
+                    }
+                    Text(benchmark.transcript.isEmpty ? "(no transcript)" : benchmark.transcript)
+                        .font(.caption)
+                        .textSelection(.enabled)
+                }
+            }
+
+            Section("History benchmarks") {
                 if let averages {
                     LabeledContent("Average ASR") {
                         Text(String(format: "%.0f ms", averages.asr))
