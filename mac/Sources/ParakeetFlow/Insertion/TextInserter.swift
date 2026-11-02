@@ -3,7 +3,16 @@ import ApplicationServices
 import Carbon.HIToolbox
 
 enum TextInserter {
-    static func insert(_ text: String, method: PasteMethod) async {
+    /// Returns true when the text was sent to an editable target. When there
+    /// is no editable text focus (Finder desktop/list, a menu, an image, etc.),
+    /// the transcript is copied instead of sending Cmd+V into arbitrary UI.
+    @discardableResult
+    static func insert(_ text: String, method: PasteMethod) async -> Bool {
+        if method != .clipboardOnly, !hasEditableTextFocus() {
+            copyToClipboard(text)
+            return false
+        }
+
         switch method {
         case .paste:
             await insertViaPaste(text)
@@ -14,11 +23,85 @@ enum TextInserter {
         case .keyByKey:
             await insertViaKeyByKey(text)
         case .clipboardOnly:
-            let pasteboard = NSPasteboard.general
-            pasteboard.clearContents()
-            pasteboard.setString(text, forType: .string)
+            copyToClipboard(text)
         }
+        return true
     }
+
+    static func copyToClipboard(_ text: String) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
+    }
+
+    /// Whether the frontmost app exposes an editable text element as focus.
+    /// This prevents a normal Finder selection from receiving a Cmd+V that
+    /// Finder treats as a file operation.
+    static func hasEditableTextFocus() -> Bool {
+        guard let app = NSWorkspace.shared.frontmostApplication else { return false }
+        let appElement = AXUIElementCreateApplication(app.processIdentifier)
+        var focusedElement: AnyObject?
+        guard AXUIElementCopyAttributeValue(
+            appElement,
+            kAXFocusedUIElementAttribute as CFString,
+            &focusedElement
+        ) == .success else {
+            return false
+        }
+
+        let element = focusedElement as! AXUIElement
+        var roleValue: AnyObject?
+        AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &roleValue)
+        let role = roleValue as? String
+
+        if let role, isEditableRole(role) {
+            return true
+        }
+
+        // Some web views expose a settable value without a conventional role.
+        // Require a text selection range as evidence that this is a text
+        // control, not a Finder icon or another settable UI element.
+        var settable: DarwinBoolean = false
+        guard AXUIElementIsAttributeSettable(
+            element, kAXValueAttribute as CFString, &settable
+        ) == .success, settable.boolValue else {
+            return false
+        }
+
+        var selectedRange: AnyObject?
+        guard AXUIElementCopyAttributeValue(
+            element, kAXSelectedTextRangeAttribute as CFString, &selectedRange
+        ) == .success else {
+            return false
+        }
+
+        // Reject non-text containers that happen to expose a settable value.
+        if let role, nonTextRoles.contains(role) {
+            return false
+        }
+        return true
+    }
+
+    static func isEditableRole(_ role: String) -> Bool {
+        editableRoles.contains(role)
+    }
+
+    private static let editableRoles: Set<String> = [
+        kAXTextFieldRole as String,
+        kAXTextAreaRole as String,
+        kAXComboBoxRole as String,
+        "AXSearchField",
+    ]
+
+    private static let nonTextRoles: Set<String> = [
+        kAXButtonRole as String,
+        kAXMenuItemRole as String,
+        kAXMenuBarRole as String,
+        kAXRowRole as String,
+        kAXCellRole as String,
+        kAXImageRole as String,
+        kAXStaticTextRole as String,
+    ]
 
     // MARK: - Cmd+V Paste
 
@@ -86,6 +169,12 @@ enum TextInserter {
         guard result == .success else { return false }
 
         let element = focusedElement as! AXUIElement
+
+        var roleValue: AnyObject?
+        AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &roleValue)
+        if let role = roleValue as? String, nonTextRoles.contains(role) {
+            return false
+        }
 
         // Check if the element is writable
         var settable: DarwinBoolean = false

@@ -386,7 +386,7 @@ final class Orchestrator {
 
         // Insert text
         appState.phase = .inserting
-        await TextInserter.insert(finalText, method: appState.pasteMethod)
+        _ = await TextInserter.insert(finalText, method: appState.pasteMethod)
 
         // Record to SwiftData
         let llmRan = llmEnabled && llmAvailable
