@@ -25,6 +25,7 @@ final class Orchestrator {
     private var isRecordingOrPending = false
     private let holdThreshold: Double = 0.4
     private var modelUnloadTask: Task<Void, Never>?
+    private var recordingStartedAt: Date?
 
     init(appState: AppState, modelContainer: ModelContainer) {
         self.appState = appState
@@ -176,6 +177,7 @@ final class Orchestrator {
     private func startRecording() async {
         guard appState.phase == .recording else { return }
 
+        recordingStartedAt = .now
         do {
             if useBatchEngine {
                 switch appState.asrBackend {
@@ -230,6 +232,7 @@ final class Orchestrator {
                 }
             }
         } catch {
+            recordingStartedAt = nil
             if appState.isRecordingOverlayEnabled {
                 overlayController.dismiss()
             }
@@ -266,15 +269,23 @@ final class Orchestrator {
         }
 
         await audioCapture.stopCapture()
+        let audioDurationMs = recordingStartedAt.map {
+            max(0, Int(Date.now.timeIntervalSince($0) * 1000))
+        } ?? 0
+        recordingStartedAt = nil
 
+        let processingStart = CFAbsoluteTimeGetCurrent()
         let rawText: String
+        let asrDurationMs: Int
         do {
+            let asrStart = CFAbsoluteTimeGetCurrent()
             if useBatchEngine {
                 appState.phase = .processing
                 rawText = try await batchFinishSession()
             } else {
                 rawText = try await transcriptionEngine.finishSession()
             }
+            asrDurationMs = Int((CFAbsoluteTimeGetCurrent() - asrStart) * 1000)
         } catch {
             appState.phase = .error
             appState.errorMessage = "Transcription failed: \(error.localizedDescription)"
@@ -316,8 +327,10 @@ final class Orchestrator {
         let llmBackend = appState.llmBackend
         let llmAvailable = PostProcessor.isAvailable(backend: llmBackend)
 
+        var llmDurationMs = 0
         if llmEnabled && llmAvailable {
             appState.phase = .processing
+            let llmStart = CFAbsoluteTimeGetCurrent()
             do {
                 if llmBackend == .mlx {
                     mlxPostProcessor.switchModel(to: appState.mlxModel.modelID)
@@ -335,6 +348,7 @@ final class Orchestrator {
             } catch {
                 finalText = dictCorrectedText
             }
+            llmDurationMs = Int((CFAbsoluteTimeGetCurrent() - llmStart) * 1000)
         }
 
         // Insert text
@@ -346,11 +360,14 @@ final class Orchestrator {
         let filtered = processedText != rawText ? processedText : nil
         let dictCorrected = dictCorrectedText != processedText ? dictCorrectedText : nil
         let cleaned = finalText != (dictCorrected ?? filtered ?? rawText) ? finalText : nil
+        let totalDurationMs = Int((CFAbsoluteTimeGetCurrent() - processingStart) * 1000)
         saveTranscription(
             rawText: rawText, filteredText: filtered,
             dictionaryCorrectedText: dictCorrected, cleanedText: cleaned,
             context: context, filterRan: filterRan,
-            dictionaryRan: dictionaryRan, llmRan: llmRan
+            dictionaryRan: dictionaryRan, llmRan: llmRan,
+            audioDurationMs: audioDurationMs, asrDurationMs: asrDurationMs,
+            llmDurationMs: llmDurationMs, totalDurationMs: totalDurationMs
         )
         appState.phase = .idle
         scheduleModelUnload()
@@ -358,6 +375,7 @@ final class Orchestrator {
 
     private func cancelRecording() async {
         guard appState.phase == .recording else { return }
+        recordingStartedAt = nil
 
         if appState.isAudioFeedbackEnabled {
             AudioFeedbackManager.playStopSound()
@@ -660,7 +678,9 @@ final class Orchestrator {
         rawText: String, filteredText: String?,
         dictionaryCorrectedText: String?, cleanedText: String?,
         context: AppContext, filterRan: Bool,
-        dictionaryRan: Bool, llmRan: Bool
+        dictionaryRan: Bool, llmRan: Bool,
+        audioDurationMs: Int, asrDurationMs: Int,
+        llmDurationMs: Int, totalDurationMs: Int
     ) {
         let ctx = ModelContext(modelContainer)
         let entry = TranscriptionEntry(
@@ -675,7 +695,11 @@ final class Orchestrator {
             surroundingText: context.surroundingText,
             filterRan: filterRan,
             dictionaryRan: dictionaryRan,
-            llmRan: llmRan
+            llmRan: llmRan,
+            audioDurationMs: audioDurationMs,
+            asrDurationMs: asrDurationMs,
+            llmDurationMs: llmDurationMs,
+            totalDurationMs: totalDurationMs
         )
         ctx.insert(entry)
         try? ctx.save()

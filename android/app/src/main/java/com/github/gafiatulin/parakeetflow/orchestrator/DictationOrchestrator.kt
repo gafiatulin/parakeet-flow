@@ -199,6 +199,9 @@ class DictationOrchestrator @Inject constructor(
                     return@launch
                 }
 
+                val audioMillis = (samples.size * 1000L) / AudioCaptureManager.SAMPLE_RATE
+                val processingStart = System.currentTimeMillis()
+
                 // 2. Transcribe audio to text
                 if (!transcriptionEngine.isReady) {
                     Log.i(TAG, "Engine not ready, initializing...")
@@ -208,7 +211,9 @@ class DictationOrchestrator @Inject constructor(
                         return@launch
                     }
                 }
+                val asrStart = System.currentTimeMillis()
                 val rawText = transcriptionEngine.transcribe(samples)
+                val asrMillis = System.currentTimeMillis() - asrStart
                 if (rawText.isBlank()) {
                     Log.d(TAG, "Transcription produced empty text")
                     serviceBridge.updatePhase(AppPhase.IDLE)
@@ -231,11 +236,13 @@ class DictationOrchestrator @Inject constructor(
                 Log.d(TAG, "App context: ${appContext.appLabel} / ${appContext.activityTitle}")
 
                 // 5. LLM post-processing (if enabled and available)
+                val llmStart = System.currentTimeMillis()
                 val cleanedText = if (settings.llmEnabled && postProcessor.isReady) {
                     postProcessor.cleanup(filteredText, appContext)
                 } else {
                     filteredText
                 }
+                val llmMillis = System.currentTimeMillis() - llmStart
                 Log.d(TAG, "Cleaned text: $cleanedText")
 
                 // 6. Insert text or copy to clipboard
@@ -253,7 +260,10 @@ class DictationOrchestrator @Inject constructor(
                     cleanedText = cleanedText,
                     appContext = appContext.appLabel,
                     timestampMillis = System.currentTimeMillis(),
-                    durationMillis = (samples.size * 1000L) / AudioCaptureManager.SAMPLE_RATE
+                    durationMillis = audioMillis,
+                    asrMillis = asrMillis,
+                    llmMillis = llmMillis,
+                    totalMillis = System.currentTimeMillis() - processingStart
                 ))
 
                 serviceBridge.updatePhase(AppPhase.IDLE)

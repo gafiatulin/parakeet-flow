@@ -76,6 +76,16 @@ struct HistoryView: View {
         return groups
     }
 
+    private var averagePerformance: String? {
+        let timed = entries.filter { $0.asrDurationMs > 0 && $0.audioDurationMs > 0 }
+        guard !timed.isEmpty else { return nil }
+        let avgAsr = timed.map(\.asrDurationMs).reduce(0, +) / timed.count
+        let avgTotal = timed.map(\.totalDurationMs).reduce(0, +) / timed.count
+        let avgAudio = timed.map(\.audioDurationMs).reduce(0, +) / timed.count
+        let rtf = avgAsr > 0 ? Double(avgAudio) / Double(avgAsr) : 0
+        return String(format: "avg ASR %.0f ms · %.1f× RTF · avg total %.0f ms", Double(avgAsr), rtf, Double(avgTotal))
+    }
+
     var body: some View {
         Group {
             if entries.isEmpty {
@@ -120,12 +130,18 @@ struct HistoryView: View {
         }
         .safeAreaInset(edge: .bottom) {
             if !entries.isEmpty {
-                Text("\(entries.count) \(entries.count == 1 ? "entry" : "entries")")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 6)
-                    .background(.bar)
+                HStack(spacing: 8) {
+                    Text("\(entries.count) \(entries.count == 1 ? "entry" : "entries")")
+                    if let average = averagePerformance {
+                        Text("·")
+                        Text(average)
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 6)
+                .background(.bar)
             }
         }
         .modifier(ConditionalSearchable(isEnabled: !entries.isEmpty, text: $searchText))
@@ -183,6 +199,13 @@ private struct HistoryRow: View {
                     PipelineStage(label: "LLM", text: cleaned)
                 } else if entry.llmRan {
                     PipelineStage(label: "LLM", unchanged: true)
+                }
+
+                if entry.totalDurationMs > 0 {
+                    Divider()
+                    Text(performanceSummary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
 
                 if entry.appName != nil || entry.windowTitle != nil || entry.surroundingText != nil {
@@ -262,6 +285,20 @@ private struct HistoryRow: View {
                 onDelete()
             }
         }
+    }
+
+    private var performanceSummary: String {
+        let asr = Double(entry.asrDurationMs)
+        let rtf = asr > 0 ? Double(entry.audioDurationMs) / asr : 0
+        var parts = [String(format: "%.0f ms ASR", asr)]
+        if entry.llmDurationMs > 0 {
+            parts.append(String(format: "%.0f ms LLM", Double(entry.llmDurationMs)))
+        }
+        parts.append(String(format: "%.0f ms total", Double(entry.totalDurationMs)))
+        if rtf > 0 {
+            parts.append(String(format: "%.1f× RTF", rtf))
+        }
+        return parts.joined(separator: " · ")
     }
 
     private func copyText(_ text: String) {

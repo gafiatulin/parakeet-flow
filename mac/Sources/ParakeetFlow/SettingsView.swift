@@ -21,6 +21,9 @@ struct SettingsView: View {
                     .tabItem { Label("Dictionary", systemImage: "character.book.closed") }
             }
 
+            PerformanceSettingsView()
+                .tabItem { Label("Performance", systemImage: "speedometer") }
+
             PermissionsView()
                 .tabItem { Label("Permissions", systemImage: "lock.shield") }
         }
