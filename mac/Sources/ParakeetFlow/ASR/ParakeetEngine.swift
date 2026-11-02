@@ -1,4 +1,4 @@
-import AVFoundation
+@preconcurrency import AVFoundation
 import FluidAudio
 import os
 
@@ -128,15 +128,21 @@ final class ParakeetEngine: @unchecked Sendable {
         if let manager = streamManager {
             streamInput.finish()
             await feedTask?.value
-            let text = try await manager.finish()
-            updatesTask?.cancel()
-            updatesTask = nil
-            feedTask = nil
-            streamManager = nil
-            return text
+            do {
+                let text = try await manager.finish()
+                updatesTask?.cancel()
+                updatesTask = nil
+                feedTask = nil
+                streamManager = nil
+                return text
+            } catch {
+                // A failed stream should not lose the recording; fall through
+                // to the whole-clip path below.
+                await cancelStream()
+            }
         }
 
-        // Streaming could not start; use the whole-clip path.
+        // Streaming could not start or finish; use the whole-clip path.
         var decoderState = TdtDecoderState.make(decoderLayers: await asrManager.decoderLayerCount)
         let result = try await asrManager.transcribe(
             audioSamples,

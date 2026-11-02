@@ -19,6 +19,11 @@ On-device voice dictation with LLM post-processing. Hold a hotkey (or tap a bubb
 - **Stutter and false start removal** — repeated words and immediate restarts are cleaned up ("I I think" → "I think")
 - **Voice formatting commands** — "new line", "new paragraph", "comma", "period", etc. are converted to punctuation (macOS)
 - **Numbered list formatting** — dictate items with numbers and they're formatted as a list (macOS)
+- **Speech VAD** — silent captures are discarded before ASR, avoiding hallucinated closing phrases
+- **Live partial text** — Parakeet dictation streams partial text as you speak (macOS)
+- **Performance history** — per-dictation ASR/LLM/total latency and real-time factor, with an aggregate Performance pane (macOS)
+- **History export** — Markdown/JSON on macOS, optional Markdown + WAV folder export on Android
+- **Shortcut modes and update checks** — hold/tap-lock or toggle on macOS, plus a GitHub-release update check on both platforms
 - **Filler word removal** — strips um, uh, like, you know, basically, etc. via regex set-match before LLM, and again during LLM cleanup (toggleable)
 - **Custom dictionary** — add names, technical terms, or frequently misheard words; fuzzy matching (Levenshtein + Soundex) auto-corrects ASR errors before LLM cleanup, and dictionary words are injected into the LLM prompt as preferred spellings (macOS)
 - **Context-aware cleanup** — reads the active app, window title, and surrounding text; adapts tone (casual for Slack, formal for Mail, technical for Xcode) (macOS)

@@ -21,6 +21,7 @@ enum HistoryExportFormat {
 }
 
 enum HistoryExporter {
+    @MainActor
     static func export(_ entries: [TranscriptionEntry], as format: HistoryExportFormat) {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.init(filenameExtension: format.allowedType) ?? .plainText]
