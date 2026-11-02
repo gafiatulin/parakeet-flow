@@ -157,12 +157,14 @@ enum LlmBackend: String, CaseIterable {
 }
 
 enum MlxModelChoice: String, CaseIterable {
+    case qwen35_08b_cleanup = "TalkMate/Qwen3.5-0.8B-parakeet-52k-FullFT-MLX-5bit"
     case qwen35_2b = "mlx-community/Qwen3.5-2B-6bit"
     case phi4mini = "mlx-community/Phi-4-mini-instruct-4bit"
     case llama32_3b = "mlx-community/Llama-3.2-3B-Instruct-4bit"
 
     var label: String {
         switch self {
+        case .qwen35_08b_cleanup: return "Qwen 3.5 0.8B Cleanup (5-bit)"
         case .qwen35_2b: return "Qwen 3.5 2B (6-bit)"
         case .phi4mini: return "Phi-4 Mini (4-bit)"
         case .llama32_3b: return "Llama 3.2 3B (4-bit)"
@@ -292,7 +294,7 @@ final class AppState {
             "hotkeyMode": HotkeyMode.hold.rawValue,
             "asrBackend": AsrBackend.apple.rawValue,
             "llmBackend": LlmBackend.apple.rawValue,
-            "mlxModel": MlxModelChoice.qwen35_2b.rawValue,
+            "mlxModel": MlxModelChoice.qwen35_08b_cleanup.rawValue,
         ])
         self.isLLMEnabled = defaults.bool(forKey: "isLLMEnabled")
         self.isFillerRemovalEnabled = defaults.bool(forKey: "isFillerRemovalEnabled")
@@ -320,7 +322,7 @@ final class AppState {
             self.asrBackend = AsrBackend(rawValue: savedAsrBackend) ?? .apple
         }
         self.llmBackend = LlmBackend(rawValue: defaults.string(forKey: "llmBackend") ?? "") ?? .apple
-        self.mlxModel = MlxModelChoice(rawValue: defaults.string(forKey: "mlxModel") ?? "") ?? .qwen35_2b
+        self.mlxModel = MlxModelChoice(rawValue: defaults.string(forKey: "mlxModel") ?? "") ?? .qwen35_08b_cleanup
         self.hasCompletedOnboarding = defaults.bool(forKey: "hasCompletedOnboarding")
         FillerWordFilter.updatePatterns(loadedFillerWords)
     }
