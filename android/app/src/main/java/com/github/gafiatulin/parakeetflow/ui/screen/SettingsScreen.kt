@@ -33,13 +33,16 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.github.gafiatulin.parakeetflow.BuildConfig
 import com.github.gafiatulin.parakeetflow.core.model.AsrModel
 import com.github.gafiatulin.parakeetflow.core.model.MdContentMode
 import com.github.gafiatulin.parakeetflow.core.model.ModelStatus
 import com.github.gafiatulin.parakeetflow.service.DictationService
 import com.github.gafiatulin.parakeetflow.ui.component.ModelStatusCard
 import com.github.gafiatulin.parakeetflow.viewmodel.AppViewModel
+import com.github.gafiatulin.parakeetflow.update.UpdateChecker
 import com.github.gafiatulin.parakeetflow.viewmodel.SettingsViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,6 +58,9 @@ fun SettingsScreen(
     val asrStatus by appViewModel.asrStatus.collectAsState()
     val llmStatus by appViewModel.llmStatus.collectAsState()
     val selectedAsrModel by appViewModel.selectedAsrModel.collectAsState()
+    val scope = rememberCoroutineScope()
+    var updateAvailable by remember { mutableStateOf<UpdateChecker.AvailableUpdate?>(null) }
+    var updateError by remember { mutableStateOf<String?>(null) }
 
     // Re-check permissions on resume (returning from system settings)
     var refreshKey by remember { mutableIntStateOf(0) }
@@ -579,7 +585,62 @@ fun SettingsScreen(
                     )
                 }
             )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            Text(
+                "About",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+            ListItem(
+                headlineContent = { Text("Version") },
+                supportingContent = { Text(BuildConfig.VERSION_NAME) }
+            )
+            ListItem(
+                headlineContent = { Text("Check for updates") },
+                supportingContent = { Text("Uses the latest GitHub release") },
+                trailingContent = {
+                    Button(onClick = {
+                        scope.launch {
+                            UpdateChecker.check(BuildConfig.VERSION_NAME)
+                                .onSuccess { updateAvailable = it }
+                                .onFailure { updateError = it.message ?: "Update check failed" }
+                        }
+                    }) {
+                        Text("Check")
+                    }
+                }
+            )
         }
+    }
+
+    updateAvailable?.let { update ->
+        AlertDialog(
+            onDismissRequest = { updateAvailable = null },
+            title = { Text("Update available") },
+            text = { Text("ParakeetFlow ${update.version} is available. You have ${BuildConfig.VERSION_NAME}.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    updateAvailable = null
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(update.url)))
+                }) { Text("Download") }
+            },
+            dismissButton = {
+                TextButton(onClick = { updateAvailable = null }) { Text("Later") }
+            }
+        )
+    }
+
+    updateError?.let { message ->
+        AlertDialog(
+            onDismissRequest = { updateError = null },
+            title = { Text("Couldn't check for updates") },
+            text = { Text(message) },
+            confirmButton = {
+                TextButton(onClick = { updateError = null }) { Text("OK") }
+            }
+        )
     }
 }
 

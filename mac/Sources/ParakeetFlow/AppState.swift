@@ -35,6 +35,25 @@ enum HotkeyChoice: String, CaseIterable {
     }
 }
 
+enum HotkeyMode: String, CaseIterable {
+    case hold
+    case toggle
+
+    var label: String {
+        switch self {
+        case .hold: "Hold or tap to lock"
+        case .toggle: "Tap to start and stop"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .hold: "Hold the shortcut to talk, or tap it to lock recording on."
+        case .toggle: "Tap once to start recording and tap again to stop."
+        }
+    }
+}
+
 enum WaveformColor: String, CaseIterable {
     case parakeet
     case white
@@ -231,6 +250,9 @@ final class AppState {
     var hotkeyChoice: HotkeyChoice {
         didSet { UserDefaults.standard.set(hotkeyChoice.rawValue, forKey: "hotkeyChoice") }
     }
+    var hotkeyMode: HotkeyMode {
+        didSet { UserDefaults.standard.set(hotkeyMode.rawValue, forKey: "hotkeyMode") }
+    }
     var asrBackend: AsrBackend {
         didSet { UserDefaults.standard.set(asrBackend.rawValue, forKey: "asrBackend") }
     }
@@ -259,6 +281,7 @@ final class AppState {
             "waveformColor": WaveformColor.parakeet.rawValue,
             "pasteMethod": PasteMethod.paste.rawValue,
             "hotkeyChoice": HotkeyChoice.option.rawValue,
+            "hotkeyMode": HotkeyMode.hold.rawValue,
             "asrBackend": AsrBackend.apple.rawValue,
             "llmBackend": LlmBackend.apple.rawValue,
             "mlxModel": MlxModelChoice.qwen35_2b.rawValue,
@@ -275,6 +298,7 @@ final class AppState {
         self.waveformColor = WaveformColor(rawValue: defaults.string(forKey: "waveformColor") ?? "") ?? .bluePurple
         self.pasteMethod = PasteMethod(rawValue: defaults.string(forKey: "pasteMethod") ?? "") ?? .paste
         self.hotkeyChoice = HotkeyChoice(rawValue: defaults.string(forKey: "hotkeyChoice") ?? "") ?? .option
+        self.hotkeyMode = HotkeyMode(rawValue: defaults.string(forKey: "hotkeyMode") ?? "") ?? .hold
         let savedAsrBackend = defaults.string(forKey: "asrBackend") ?? ""
         if savedAsrBackend == "qwen3Asr" || savedAsrBackend == "qwen3AsrInt8" || savedAsrBackend == "parakeet" {
             // Qwen3 ASR and Parakeet v3 were removed; migrate those users to Ultra.

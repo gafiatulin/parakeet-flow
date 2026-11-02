@@ -46,7 +46,11 @@ final class Orchestrator {
         hotkeyManager.onKeyPress = { [weak self] in
             Task { @MainActor in
                 guard let self else { return }
-                if self.isHandsFreeMode {
+                if self.appState.hotkeyMode == .toggle, self.isRecordingOrPending {
+                    // Toggle mode: the second press finishes the recording.
+                    self.requestStop()
+                    await self.stopRecordingAndProcess()
+                } else if self.isHandsFreeMode {
                     // Second press in hands-free — stop immediately
                     self.requestStop()
                     await self.stopRecordingAndProcess()
@@ -83,7 +87,8 @@ final class Orchestrator {
         // Key up: push-to-talk stop or enter hands-free
         hotkeyManager.onKeyRelease = { [weak self] duration in
             Task { @MainActor in
-                guard let self, self.isRecordingOrPending else { return }
+                guard let self, self.appState.hotkeyMode == .hold else { return }
+                guard self.isRecordingOrPending else { return }
 
                 if duration < self.holdThreshold {
                     // Quick tap — enter hands-free mode, keep recording

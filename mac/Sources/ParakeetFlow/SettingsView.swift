@@ -61,7 +61,12 @@ struct GeneralSettingsView: View {
                 .onChange(of: appState.hotkeyChoice) { _, newValue in
                     orchestrator?.updateHotkey(newValue)
                 }
-                Text("Hold to dictate · Tap to toggle · Esc to cancel")
+                Picker("Shortcut mode", selection: $appState.hotkeyMode) {
+                    ForEach(HotkeyMode.allCases, id: \.self) { mode in
+                        Text(mode.label).tag(mode)
+                    }
+                }
+                Text(appState.hotkeyMode.detail + " Esc to cancel.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
