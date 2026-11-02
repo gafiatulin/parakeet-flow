@@ -10,5 +10,8 @@ data class TranscriptionRecord(
     val cleanedText: String,
     val appContext: String,
     val timestampMillis: Long,
-    val durationMillis: Long
+    val durationMillis: Long,
+    val asrMillis: Long = 0,
+    val llmMillis: Long = 0,
+    val totalMillis: Long = 0
 )

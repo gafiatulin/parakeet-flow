@@ -16,6 +16,13 @@ final class TranscriptionEntry {
     var dictionaryRan: Bool
     var llmRan: Bool
 
+    // Lightweight performance data for the current entry. Defaults keep
+    // existing SwiftData stores migration-safe.
+    var audioDurationMs: Int = 0
+    var asrDurationMs: Int = 0
+    var llmDurationMs: Int = 0
+    var totalDurationMs: Int = 0
+
     var displayText: String {
         cleanedText ?? dictionaryCorrectedText ?? filteredText ?? rawText
     }
@@ -24,7 +31,9 @@ final class TranscriptionEntry {
          dictionaryCorrectedText: String? = nil, cleanedText: String? = nil,
          appName: String? = nil, appBundleIdentifier: String? = nil,
          windowTitle: String? = nil, surroundingText: String? = nil,
-         filterRan: Bool = false, dictionaryRan: Bool = false, llmRan: Bool = false) {
+         filterRan: Bool = false, dictionaryRan: Bool = false, llmRan: Bool = false,
+         audioDurationMs: Int = 0, asrDurationMs: Int = 0,
+         llmDurationMs: Int = 0, totalDurationMs: Int = 0) {
         self.timestamp = timestamp
         self.rawText = rawText
         self.filteredText = filteredText
@@ -37,6 +46,10 @@ final class TranscriptionEntry {
         self.filterRan = filterRan
         self.dictionaryRan = dictionaryRan
         self.llmRan = llmRan
+        self.audioDurationMs = audioDurationMs
+        self.asrDurationMs = asrDurationMs
+        self.llmDurationMs = llmDurationMs
+        self.totalDurationMs = totalDurationMs
     }
 }
 

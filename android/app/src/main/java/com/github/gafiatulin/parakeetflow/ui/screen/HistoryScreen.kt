@@ -87,10 +87,29 @@ fun HistoryScreen(
                             if (record.cleanedText != record.filteredText) {
                                 PipelineStageRow(label = "Cleaned", text = record.cleanedText)
                             }
+                            if (record.totalMillis > 0) {
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    performanceSummary(record),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
             }
         }
     }
+}
+
+private fun performanceSummary(record: com.github.gafiatulin.parakeetflow.core.model.TranscriptionRecord): String {
+    val parts = mutableListOf("${record.asrMillis} ms ASR")
+    if (record.llmMillis > 0) parts += "${record.llmMillis} ms LLM"
+    parts += "${record.totalMillis} ms total"
+    if (record.asrMillis > 0) {
+        val rtf = record.durationMillis.toDouble() / record.asrMillis.toDouble()
+        parts += String.format(java.util.Locale.US, "%.1fx RTF", rtf)
+    }
+    return parts.joinToString(" · ")
 }

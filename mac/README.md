@@ -6,14 +6,15 @@ Hold a hotkey to record, release to transcribe and insert cleaned-up text at the
 
 ## Features
 
-- **Streaming transcription** via Apple SpeechAnalyzer (macOS 26+)
+- **Streaming transcription** via Apple SpeechAnalyzer and live Parakeet partials
+- **Silero VAD** speech gate that drops silent captures
 - **LLM cleanup** via Apple FoundationModels (on-device Apple Intelligence) or MLX (Qwen, Phi, Llama)
-- **Push-to-talk and hands-free** hotkey modes
+- **Push-to-talk, tap-to-lock, and toggle** shortcut modes
 - **Context-aware** prompts using the active app and selected text
 - **Filler word removal** (um, uh, like, etc.)
 - **Custom dictionary** with fuzzy + phonetic matching (Levenshtein + Soundex) for names, technical terms, and frequently misheard words
 - **Recording overlay** with animated waveform indicator
-- **Transcription history** stored in SwiftData with full pipeline visibility
+- **Transcription history** stored in SwiftData with full pipeline visibility, per-run latency/RTF, and Markdown/JSON export
 - **Alternative ASR backends** via FluidAudio (Parakeet TDT v2 (English), Parakeet Ultra (Multilingual))
 
 ## Requirements
@@ -107,6 +108,8 @@ All settings are accessible from the menu bar icon → Settings:
 - **Dictionary** — custom word corrections with configurable fuzzy match threshold
 - **Recording overlay** — waveform color and visibility
 - **Model memory management** — auto-unload models after inactivity
+- **Performance benchmarks** — average ASR/LLM/total latency and RTF in Settings → Performance
+- **Update check** — compares the current version with the latest GitHub release
 
 ## License
 

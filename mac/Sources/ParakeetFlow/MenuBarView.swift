@@ -37,7 +37,7 @@ struct MenuBarView: View {
                     }
                 }
             } else {
-                Text("\(appState.hotkeyChoice.symbol) hold / tap · esc cancel")
+                Text("\(appState.hotkeyChoice.symbol) \(appState.hotkeyMode == .toggle ? "tap to start/stop" : "hold / tap") · esc cancel")
             }
 
             Divider()
@@ -51,6 +51,13 @@ struct MenuBarView: View {
                 NSApp.activate()
                 openSettings()
             }
+
+            Button("Check for Updates…") {
+                checkForUpdates()
+            }
+
+            Text("Version \(UpdateChecker.currentVersion)")
+                .font(.caption)
 
             Divider()
 
@@ -79,6 +86,32 @@ struct MenuBarView: View {
         case .processing: return "ellipsis.circle"
         case .inserting: return "doc.on.clipboard"
         case .error: return "exclamationmark.triangle"
+        }
+    }
+
+    private func checkForUpdates() {
+        Task {
+            let alert = NSAlert()
+            do {
+                guard let release = try await UpdateChecker.latestRelease() else { return }
+                if UpdateChecker.isNewer(release.version, than: UpdateChecker.currentVersion) {
+                    alert.messageText = "Update available"
+                    alert.informativeText = "ParakeetFlow \(release.version) is available. You have \(UpdateChecker.currentVersion)."
+                    alert.addButton(withTitle: "Download")
+                    alert.addButton(withTitle: "Later")
+                    if alert.runModal() == .alertFirstButtonReturn {
+                        NSWorkspace.shared.open(release.url)
+                    }
+                } else {
+                    alert.messageText = "You're up to date"
+                    alert.informativeText = "ParakeetFlow \(UpdateChecker.currentVersion) is the latest version."
+                    alert.runModal()
+                }
+            } catch {
+                alert.messageText = "Couldn't check for updates"
+                alert.informativeText = error.localizedDescription
+                alert.runModal()
+            }
         }
     }
 

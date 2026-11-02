@@ -25,6 +25,7 @@ final class Orchestrator {
     private var isRecordingOrPending = false
     private let holdThreshold: Double = 0.4
     private var modelUnloadTask: Task<Void, Never>?
+    private var recordingStartedAt: Date?
 
     init(appState: AppState, modelContainer: ModelContainer) {
         self.appState = appState
@@ -45,7 +46,11 @@ final class Orchestrator {
         hotkeyManager.onKeyPress = { [weak self] in
             Task { @MainActor in
                 guard let self else { return }
-                if self.isHandsFreeMode {
+                if self.appState.hotkeyMode == .toggle, self.isRecordingOrPending {
+                    // Toggle mode: the second press finishes the recording.
+                    self.requestStop()
+                    await self.stopRecordingAndProcess()
+                } else if self.isHandsFreeMode {
                     // Second press in hands-free — stop immediately
                     self.requestStop()
                     await self.stopRecordingAndProcess()
@@ -82,7 +87,8 @@ final class Orchestrator {
         // Key up: push-to-talk stop or enter hands-free
         hotkeyManager.onKeyRelease = { [weak self] duration in
             Task { @MainActor in
-                guard let self, self.isRecordingOrPending else { return }
+                guard let self, self.appState.hotkeyMode == .hold else { return }
+                guard self.isRecordingOrPending else { return }
 
                 if duration < self.holdThreshold {
                     // Quick tap — enter hands-free mode, keep recording
@@ -176,6 +182,7 @@ final class Orchestrator {
     private func startRecording() async {
         guard appState.phase == .recording else { return }
 
+        recordingStartedAt = .now
         do {
             if useBatchEngine {
                 switch appState.asrBackend {
@@ -192,7 +199,18 @@ final class Orchestrator {
                     return
                 }
 
-                batchStartSession()
+                await batchStartSession { [weak self] text in
+                    Task { @MainActor [weak self] in
+                        self?.appState.partialTranscription = text
+                    }
+                }
+
+                guard isRecordingOrPending else {
+                    await batchCancelSession()
+                    cleanUpRecordingUI()
+                    return
+                }
+
                 let format = batchTargetFormat()
                 let feedAudio = batchFeedAudioClosure()
 
@@ -230,6 +248,8 @@ final class Orchestrator {
                 }
             }
         } catch {
+            recordingStartedAt = nil
+            await batchCancelSession()
             if appState.isRecordingOverlayEnabled {
                 overlayController.dismiss()
             }
@@ -266,15 +286,23 @@ final class Orchestrator {
         }
 
         await audioCapture.stopCapture()
+        let audioDurationMs = recordingStartedAt.map {
+            max(0, Int(Date.now.timeIntervalSince($0) * 1000))
+        } ?? 0
+        recordingStartedAt = nil
 
+        let processingStart = CFAbsoluteTimeGetCurrent()
         let rawText: String
+        let asrDurationMs: Int
         do {
+            let asrStart = CFAbsoluteTimeGetCurrent()
             if useBatchEngine {
                 appState.phase = .processing
                 rawText = try await batchFinishSession()
             } else {
                 rawText = try await transcriptionEngine.finishSession()
             }
+            asrDurationMs = Int((CFAbsoluteTimeGetCurrent() - asrStart) * 1000)
         } catch {
             appState.phase = .error
             appState.errorMessage = "Transcription failed: \(error.localizedDescription)"
@@ -316,8 +344,10 @@ final class Orchestrator {
         let llmBackend = appState.llmBackend
         let llmAvailable = PostProcessor.isAvailable(backend: llmBackend)
 
+        var llmDurationMs = 0
         if llmEnabled && llmAvailable {
             appState.phase = .processing
+            let llmStart = CFAbsoluteTimeGetCurrent()
             do {
                 if llmBackend == .mlx {
                     mlxPostProcessor.switchModel(to: appState.mlxModel.modelID)
@@ -335,6 +365,7 @@ final class Orchestrator {
             } catch {
                 finalText = dictCorrectedText
             }
+            llmDurationMs = Int((CFAbsoluteTimeGetCurrent() - llmStart) * 1000)
         }
 
         // Insert text
@@ -346,11 +377,14 @@ final class Orchestrator {
         let filtered = processedText != rawText ? processedText : nil
         let dictCorrected = dictCorrectedText != processedText ? dictCorrectedText : nil
         let cleaned = finalText != (dictCorrected ?? filtered ?? rawText) ? finalText : nil
+        let totalDurationMs = Int((CFAbsoluteTimeGetCurrent() - processingStart) * 1000)
         saveTranscription(
             rawText: rawText, filteredText: filtered,
             dictionaryCorrectedText: dictCorrected, cleanedText: cleaned,
             context: context, filterRan: filterRan,
-            dictionaryRan: dictionaryRan, llmRan: llmRan
+            dictionaryRan: dictionaryRan, llmRan: llmRan,
+            audioDurationMs: audioDurationMs, asrDurationMs: asrDurationMs,
+            llmDurationMs: llmDurationMs, totalDurationMs: totalDurationMs
         )
         appState.phase = .idle
         scheduleModelUnload()
@@ -358,6 +392,7 @@ final class Orchestrator {
 
     private func cancelRecording() async {
         guard appState.phase == .recording else { return }
+        recordingStartedAt = nil
 
         if appState.isAudioFeedbackEnabled {
             AudioFeedbackManager.playStopSound()
@@ -367,7 +402,9 @@ final class Orchestrator {
         }
 
         await audioCapture.stopCapture()
-        if !useBatchEngine {
+        if useBatchEngine {
+            await batchCancelSession()
+        } else {
             _ = try? await transcriptionEngine.finishSession()
         }
 
@@ -377,10 +414,18 @@ final class Orchestrator {
 
     // MARK: - Batch engine helpers
 
-    private func batchStartSession() {
+    private func batchStartSession(onPartial: @escaping @Sendable (String) -> Void) async {
         switch appState.asrBackend {
-        case .parakeetV2: parakeetV2Engine.startSession()
-        case .parakeetUltra: parakeetUltraEngine.startSession()
+        case .parakeetV2: await parakeetV2Engine.startSession(onPartial: onPartial)
+        case .parakeetUltra: await parakeetUltraEngine.startSession(onPartial: onPartial)
+        case .apple: break
+        }
+    }
+
+    private func batchCancelSession() async {
+        switch appState.asrBackend {
+        case .parakeetV2: await parakeetV2Engine.cancelSession()
+        case .parakeetUltra: await parakeetUltraEngine.cancelSession()
         case .apple: break
         }
     }
@@ -660,7 +705,9 @@ final class Orchestrator {
         rawText: String, filteredText: String?,
         dictionaryCorrectedText: String?, cleanedText: String?,
         context: AppContext, filterRan: Bool,
-        dictionaryRan: Bool, llmRan: Bool
+        dictionaryRan: Bool, llmRan: Bool,
+        audioDurationMs: Int, asrDurationMs: Int,
+        llmDurationMs: Int, totalDurationMs: Int
     ) {
         let ctx = ModelContext(modelContainer)
         let entry = TranscriptionEntry(
@@ -675,7 +722,11 @@ final class Orchestrator {
             surroundingText: context.surroundingText,
             filterRan: filterRan,
             dictionaryRan: dictionaryRan,
-            llmRan: llmRan
+            llmRan: llmRan,
+            audioDurationMs: audioDurationMs,
+            asrDurationMs: asrDurationMs,
+            llmDurationMs: llmDurationMs,
+            totalDurationMs: totalDurationMs
         )
         ctx.insert(entry)
         try? ctx.save()

@@ -1,6 +1,6 @@
 # ParakeetFlow Android
 
-On-device voice dictation for Android. Tap or hold the floating bubble to transcribe speech and insert text into any app via AccessibilityService. Drag it anywhere on screen, including over the status bar. While recording, pause/resume or cancel from the bubble. Bubble size, color, opacity, and control placement are configurable in Settings. Optional LLM post-processing cleans up grammar and punctuation.
+On-device voice dictation for Android. Tap or hold the floating bubble to transcribe speech and insert text into any app via AccessibilityService. Drag it anywhere on screen, including over the status bar. While recording, pause/resume or cancel from the bubble. Bubble size, color, opacity, and control placement are configurable in Settings. Optional LLM post-processing cleans up grammar and punctuation. Silent captures are filtered by a speech gate, History shows per-run ASR/LLM/total latency and RTF, and finished transcripts can be exported as Markdown (with optional WAV) to a user-selected folder. Settings includes a GitHub-release update check.
 
 ## Architecture
 
@@ -121,7 +121,7 @@ Models are downloaded in-app from HuggingFace. No authentication required.
 ./gradlew testDebugUnitTest
 ```
 
-Tests cover `FillerWordFilter` and `PromptBuilder` — pure logic with no Android dependencies.
+Tests cover `FillerWordFilter`, `PromptBuilder`, the speech-activity gate, and update version comparison — pure logic with no Android dependencies.
 
 ### Instrumentation tests
 

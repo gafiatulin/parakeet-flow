@@ -3,10 +3,12 @@ package com.github.gafiatulin.parakeetflow.orchestrator
 import android.util.Log
 import com.github.gafiatulin.parakeetflow.asr.TranscriptionEngine
 import com.github.gafiatulin.parakeetflow.audio.AudioCaptureManager
+import com.github.gafiatulin.parakeetflow.audio.SpeechActivityDetector
 import com.github.gafiatulin.parakeetflow.context.ContextReader
 import com.github.gafiatulin.parakeetflow.core.model.AppPhase
 import com.github.gafiatulin.parakeetflow.core.model.TranscriptionRecord
 import com.github.gafiatulin.parakeetflow.core.util.FillerWordFilter
+import com.github.gafiatulin.parakeetflow.export.TranscriptExporter
 import com.github.gafiatulin.parakeetflow.feedback.FeedbackManager
 import com.github.gafiatulin.parakeetflow.history.HistoryRepository
 import com.github.gafiatulin.parakeetflow.insertion.TextInserter
@@ -49,7 +51,8 @@ class DictationOrchestrator @Inject constructor(
     private val modelManager: ModelManager,
     private val historyRepository: HistoryRepository,
     private val preferencesDataStore: com.github.gafiatulin.parakeetflow.core.preferences.PreferencesDataStore,
-    private val feedbackManager: FeedbackManager
+    private val feedbackManager: FeedbackManager,
+    private val transcriptExporter: TranscriptExporter
 ) {
     companion object {
         private const val TAG = "DictationOrchestrator"
@@ -192,6 +195,15 @@ class DictationOrchestrator @Inject constructor(
                 }
                 Log.d(TAG, "Captured ${samples.size} samples (${samples.size / AudioCaptureManager.SAMPLE_RATE}s)")
 
+                if (!SpeechActivityDetector.containsSpeech(samples)) {
+                    Log.d(TAG, "Speech gate rejected silent capture")
+                    serviceBridge.updatePhase(AppPhase.IDLE)
+                    return@launch
+                }
+
+                val audioMillis = (samples.size * 1000L) / AudioCaptureManager.SAMPLE_RATE
+                val processingStart = System.currentTimeMillis()
+
                 // 2. Transcribe audio to text
                 if (!transcriptionEngine.isReady) {
                     Log.i(TAG, "Engine not ready, initializing...")
@@ -201,7 +213,9 @@ class DictationOrchestrator @Inject constructor(
                         return@launch
                     }
                 }
+                val asrStart = System.currentTimeMillis()
                 val rawText = transcriptionEngine.transcribe(samples)
+                val asrMillis = System.currentTimeMillis() - asrStart
                 if (rawText.isBlank()) {
                     Log.d(TAG, "Transcription produced empty text")
                     serviceBridge.updatePhase(AppPhase.IDLE)
@@ -224,11 +238,13 @@ class DictationOrchestrator @Inject constructor(
                 Log.d(TAG, "App context: ${appContext.appLabel} / ${appContext.activityTitle}")
 
                 // 5. LLM post-processing (if enabled and available)
+                val llmStart = System.currentTimeMillis()
                 val cleanedText = if (settings.llmEnabled && postProcessor.isReady) {
                     postProcessor.cleanup(filteredText, appContext)
                 } else {
                     filteredText
                 }
+                val llmMillis = System.currentTimeMillis() - llmStart
                 Log.d(TAG, "Cleaned text: $cleanedText")
 
                 // 6. Insert text or copy to clipboard
@@ -239,15 +255,22 @@ class DictationOrchestrator @Inject constructor(
                 }
 
                 // 7. Save to history
-                historyRepository.add(TranscriptionRecord(
+                val record = TranscriptionRecord(
                     id = UUID.randomUUID().toString(),
                     rawText = rawText,
                     filteredText = filteredText,
                     cleanedText = cleanedText,
                     appContext = appContext.appLabel,
                     timestampMillis = System.currentTimeMillis(),
-                    durationMillis = (samples.size * 1000L) / AudioCaptureManager.SAMPLE_RATE
-                ))
+                    durationMillis = audioMillis,
+                    asrMillis = asrMillis,
+                    llmMillis = llmMillis,
+                    totalMillis = System.currentTimeMillis() - processingStart
+                )
+                historyRepository.add(record)
+
+                // 8. Optional best-effort export without delaying idle.
+                scope.launch { transcriptExporter.export(record, samples, settings) }
 
                 serviceBridge.updatePhase(AppPhase.IDLE)
                 Log.i(TAG, "Dictation pipeline complete")
