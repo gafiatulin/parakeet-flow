@@ -7,8 +7,13 @@ import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import androidx.core.content.ContextCompat
+import com.k2fsa.sherpa.onnx.SileroVadModelConfig
+import com.k2fsa.sherpa.onnx.Vad
+import com.k2fsa.sherpa.onnx.VadModelConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import javax.inject.Inject
@@ -23,6 +28,8 @@ class AudioCaptureManager @Inject constructor(
         private const val CHANNEL = AudioFormat.CHANNEL_IN_MONO
         private const val ENCODING = AudioFormat.ENCODING_PCM_FLOAT
         private const val CHUNK_SIZE_SAMPLES = 1600 // 100ms at 16kHz
+        private const val VAD_MODEL_ASSET = "silero_vad.onnx"
+        private const val VAD_MIN_SEGMENT_SAMPLES = 8_000 // 0.5s
     }
 
     private val _audioChunks = MutableSharedFlow<FloatArray>(extraBufferCapacity = 64)
@@ -34,6 +41,14 @@ class AudioCaptureManager @Inject constructor(
 
     private val accumulatedSamples = mutableListOf<FloatArray>()
     private val accumulationLock = Any()
+
+    // Online VAD for speech segments and silence filtering. The channel is
+    // created per capture and closed in stopCapture so a consumer can finish.
+    private val vadLock = Any()
+    private var vad: Vad? = null
+    private var speechSegmentsChannel: Channel<FloatArray>? = null
+    val currentSpeechSegments: ReceiveChannel<FloatArray>?
+        get() = speechSegmentsChannel
 
     /** While paused, the mic stays open but samples are dropped. */
     @Volatile
@@ -90,6 +105,19 @@ class AudioCaptureManager @Inject constructor(
                         }
 
                         _audioChunks.tryEmit(chunk)
+                        synchronized(vadLock) {
+                            vad?.let { detector ->
+                                try {
+                                    detector.acceptWaveform(chunk)
+                                    drainVadSegments(detector)
+                                } catch (_: Exception) {
+                                    detector.release()
+                                    vad = null
+                                    speechSegmentsChannel?.close()
+                                    speechSegmentsChannel = null
+                                }
+                            }
+                        }
                     }
                 } else if (readResult < 0) {
                     break
@@ -113,6 +141,21 @@ class AudioCaptureManager @Inject constructor(
         recordingJob?.cancel()
         recordingJob = null
 
+        synchronized(vadLock) {
+            vad?.let { detector ->
+                try {
+                    detector.flush()
+                    drainVadSegments(detector)
+                } catch (_: Exception) {
+                    // Ignore a failing detector; the full clip is still returned.
+                }
+                detector.release()
+            }
+            vad = null
+            speechSegmentsChannel?.close()
+            speechSegmentsChannel = null
+        }
+
         audioRecord?.let { record ->
             if (record.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
                 record.stop()
@@ -134,5 +177,16 @@ class AudioCaptureManager @Inject constructor(
         }
 
         return allSamples
+    }
+
+    private fun drainVadSegments(detector: Vad) {
+        val channel = speechSegmentsChannel ?: return
+        while (!detector.empty()) {
+            val segment = detector.front()
+            detector.pop()
+            if (segment.samples.size >= VAD_MIN_SEGMENT_SAMPLES) {
+                channel.trySend(segment.samples)
+            }
+        }
     }
 }
