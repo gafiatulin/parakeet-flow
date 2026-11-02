@@ -128,7 +128,7 @@ enum AsrBackend: String, CaseIterable {
         case .bark3: return "Bark 3.0 (English)"
         case .bark3Clean: return "Bark 3.0 Clean (English, filler-free)"
         case .qwen3Asr: return "Qwen3-ASR 0.6B (30 languages)"
-        case .nemotronStreaming: return "Nemotron 3.5 Streaming (40 locales)"
+        case .nemotronStreaming: return "Nemotron 3.5 Streaming (40 languages)"
         }
     }
 
@@ -154,7 +154,7 @@ enum AsrBackend: String, CaseIterable {
         case .qwen3Asr:
             return "30 languages + 22 Chinese dialects · ~945 MB · batch"
         case .nemotronStreaming:
-            return "40 locales · true streaming · ~1.5 GB"
+            return "40 language-locales · true streaming · ~1.5 GB"
         }
     }
 }
