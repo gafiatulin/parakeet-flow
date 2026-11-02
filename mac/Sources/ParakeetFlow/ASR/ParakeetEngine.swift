@@ -8,6 +8,7 @@ final class ParakeetEngine: @unchecked Sendable {
     private let version: AsrModelVersion
     private var asrManager: AsrManager?
     private let samples = OSAllocatedUnfairLock(initialState: [Float]())
+    private let speechDetector = SpeechActivityDetector()
 
     /// The audio format Parakeet expects: 16 kHz mono Float32.
     let targetFormat = AVAudioFormat(
@@ -28,6 +29,7 @@ final class ParakeetEngine: @unchecked Sendable {
         let manager = AsrManager(config: .default)
         try await manager.loadModels(models)
         asrManager = manager
+        Task { await speechDetector.prewarm() }
     }
 
     /// Begin a new recording session — clears accumulated samples.
@@ -49,6 +51,7 @@ final class ParakeetEngine: @unchecked Sendable {
     /// Release the model from memory.
     func unload() {
         asrManager = nil
+        Task { await speechDetector.unload() }
     }
 
     /// Finish recording and run batch transcription. Returns the transcribed text.
@@ -59,6 +62,9 @@ final class ParakeetEngine: @unchecked Sendable {
         let audioSamples = samples.withLock { Array($0) }
         guard audioSamples.count >= 16_000 else {
             // Less than 1 second of audio — not enough for Parakeet
+            return ""
+        }
+        guard await speechDetector.containsSpeech(audioSamples) else {
             return ""
         }
         var decoderState = TdtDecoderState.make(decoderLayers: await asrManager.decoderLayerCount)

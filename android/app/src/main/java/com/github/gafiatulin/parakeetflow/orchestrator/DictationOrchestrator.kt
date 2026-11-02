@@ -3,6 +3,7 @@ package com.github.gafiatulin.parakeetflow.orchestrator
 import android.util.Log
 import com.github.gafiatulin.parakeetflow.asr.TranscriptionEngine
 import com.github.gafiatulin.parakeetflow.audio.AudioCaptureManager
+import com.github.gafiatulin.parakeetflow.audio.SpeechActivityDetector
 import com.github.gafiatulin.parakeetflow.context.ContextReader
 import com.github.gafiatulin.parakeetflow.core.model.AppPhase
 import com.github.gafiatulin.parakeetflow.core.model.TranscriptionRecord
@@ -191,6 +192,12 @@ class DictationOrchestrator @Inject constructor(
                     return@launch
                 }
                 Log.d(TAG, "Captured ${samples.size} samples (${samples.size / AudioCaptureManager.SAMPLE_RATE}s)")
+
+                if (!SpeechActivityDetector.containsSpeech(samples)) {
+                    Log.d(TAG, "Speech gate rejected silent capture")
+                    serviceBridge.updatePhase(AppPhase.IDLE)
+                    return@launch
+                }
 
                 // 2. Transcribe audio to text
                 if (!transcriptionEngine.isReady) {
