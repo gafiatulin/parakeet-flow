@@ -13,6 +13,8 @@ final class Orchestrator {
     private let transcriptionEngine = TranscriptionEngine()
     private let parakeetV2Engine: ParakeetEngine
     private let parakeetUltraEngine: ParakeetEngine
+    private let bark3Engine: ParakeetEngine
+    private let bark3CleanEngine: ParakeetEngine
     private let mlxPostProcessor = MLXPostProcessor()
     private let hotkeyManager = HotkeyManager()
     private let overlayController = RecordingOverlayController()
@@ -32,6 +34,8 @@ final class Orchestrator {
         self.modelContainer = modelContainer
         self.parakeetV2Engine = ParakeetEngine(version: .v2)
         self.parakeetUltraEngine = ParakeetEngine(version: .ultra)
+        self.bark3Engine = ParakeetEngine(version: .bark3)
+        self.bark3CleanEngine = ParakeetEngine(version: .bark3Clean)
     }
 
     func initialize() async {
@@ -190,6 +194,10 @@ final class Orchestrator {
                     try await parakeetV2Engine.ensureModelLoaded()
                 case .parakeetUltra:
                     try await parakeetUltraEngine.ensureModelLoaded()
+                case .bark3:
+                    try await bark3Engine.ensureModelLoaded()
+                case .bark3Clean:
+                    try await bark3CleanEngine.ensureModelLoaded()
                 case .apple:
                     break
                 }
@@ -418,6 +426,8 @@ final class Orchestrator {
         switch appState.asrBackend {
         case .parakeetV2: await parakeetV2Engine.startSession(onPartial: onPartial)
         case .parakeetUltra: await parakeetUltraEngine.startSession(onPartial: onPartial)
+        case .bark3: await bark3Engine.startSession(onPartial: onPartial)
+        case .bark3Clean: await bark3CleanEngine.startSession(onPartial: onPartial)
         case .apple: break
         }
     }
@@ -426,6 +436,8 @@ final class Orchestrator {
         switch appState.asrBackend {
         case .parakeetV2: await parakeetV2Engine.cancelSession()
         case .parakeetUltra: await parakeetUltraEngine.cancelSession()
+        case .bark3: await bark3Engine.cancelSession()
+        case .bark3Clean: await bark3CleanEngine.cancelSession()
         case .apple: break
         }
     }
@@ -440,6 +452,12 @@ final class Orchestrator {
         case .parakeetUltra:
             let engine = parakeetUltraEngine
             return { buffer in engine.feedAudio(buffer) }
+        case .bark3:
+            let engine = bark3Engine
+            return { buffer in engine.feedAudio(buffer) }
+        case .bark3Clean:
+            let engine = bark3CleanEngine
+            return { buffer in engine.feedAudio(buffer) }
         case .apple:
             return { _ in }
         }
@@ -449,6 +467,8 @@ final class Orchestrator {
         switch appState.asrBackend {
         case .parakeetV2: return parakeetV2Engine.targetFormat
         case .parakeetUltra: return parakeetUltraEngine.targetFormat
+        case .bark3: return bark3Engine.targetFormat
+        case .bark3Clean: return bark3CleanEngine.targetFormat
         case .apple: return nil
         }
     }
@@ -457,6 +477,8 @@ final class Orchestrator {
         switch appState.asrBackend {
         case .parakeetV2: return try await parakeetV2Engine.finishSession()
         case .parakeetUltra: return try await parakeetUltraEngine.finishSession()
+        case .bark3: return try await bark3Engine.finishSession()
+        case .bark3Clean: return try await bark3CleanEngine.finishSession()
         case .apple: return ""
         }
     }
@@ -475,6 +497,10 @@ final class Orchestrator {
             exists = AsrModels.modelsExist(at: dir, version: .v2)
         case .parakeetUltra:
             exists = AsrModels.modelsExist(at: dir, version: .ultra)
+        case .bark3:
+            exists = AsrModels.modelsExist(at: dir, version: .bark3)
+        case .bark3Clean:
+            exists = AsrModels.modelsExist(at: dir, version: .bark3Clean)
         case .apple:
             exists = true
         }
@@ -509,6 +535,10 @@ final class Orchestrator {
                 try await parakeetV2Engine.ensureModelLoaded()
             case .parakeetUltra:
                 try await parakeetUltraEngine.ensureModelLoaded()
+            case .bark3:
+                try await bark3Engine.ensureModelLoaded()
+            case .bark3Clean:
+                try await bark3CleanEngine.ensureModelLoaded()
             case .apple:
                 break
             }
@@ -578,6 +608,8 @@ final class Orchestrator {
         switch backend {
         case .parakeetV2: return AsrModels.defaultCacheDirectory(for: .v2)
         case .parakeetUltra: return AsrModels.defaultCacheDirectory(for: .ultra)
+        case .bark3: return AsrModels.defaultCacheDirectory(for: .bark3)
+        case .bark3Clean: return AsrModels.defaultCacheDirectory(for: .bark3Clean)
         case .apple: return URL(fileURLWithPath: "/dev/null")
         }
     }
@@ -586,6 +618,8 @@ final class Orchestrator {
         switch backend {
         case .parakeetV2: return 473_000_000
         case .parakeetUltra: return 630_000_000
+        case .bark3: return 420_000_000
+        case .bark3Clean: return 430_000_000
         case .apple: return 1
         }
     }
@@ -758,6 +792,8 @@ final class Orchestrator {
     private func unloadAllModels() {
         if parakeetV2Engine.isLoaded { parakeetV2Engine.unload() }
         if parakeetUltraEngine.isLoaded { parakeetUltraEngine.unload() }
+        if bark3Engine.isLoaded { bark3Engine.unload() }
+        if bark3CleanEngine.isLoaded { bark3CleanEngine.unload() }
         if mlxPostProcessor.isLoaded { mlxPostProcessor.unload() }
     }
 }

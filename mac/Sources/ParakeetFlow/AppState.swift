@@ -115,19 +115,23 @@ enum AsrBackend: String, CaseIterable {
     case apple
     case parakeetV2
     case parakeetUltra
+    case bark3
+    case bark3Clean
 
     var label: String {
         switch self {
         case .apple: return "Apple Speech"
         case .parakeetV2: return "Parakeet TDT v2 (EN)"
         case .parakeetUltra: return "Parakeet Ultra (Multilingual)"
+        case .bark3: return "Bark 3.0 (English, 163 MB)"
+        case .bark3Clean: return "Bark 3.0 Clean (English dictation)"
         }
     }
 
     var needsDownload: Bool {
         switch self {
         case .apple: return false
-        case .parakeetV2, .parakeetUltra: return true
+        case .parakeetV2, .parakeetUltra, .bark3, .bark3Clean: return true
         }
     }
 }
