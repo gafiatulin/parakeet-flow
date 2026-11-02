@@ -12,9 +12,7 @@ final class Orchestrator {
     private let audioCapture = AudioCaptureManager()
     private let transcriptionEngine = TranscriptionEngine()
     private let parakeetV2Engine: ParakeetEngine
-    private let parakeetEngine: ParakeetEngine
-    private let qwen3Engine: Qwen3AsrEngine
-    private let qwen3Int8Engine: Qwen3AsrEngine
+    private let parakeetUltraEngine: ParakeetEngine
     private let mlxPostProcessor = MLXPostProcessor()
     private let hotkeyManager = HotkeyManager()
     private let overlayController = RecordingOverlayController()
@@ -32,9 +30,7 @@ final class Orchestrator {
         self.appState = appState
         self.modelContainer = modelContainer
         self.parakeetV2Engine = ParakeetEngine(version: .v2)
-        self.parakeetEngine = ParakeetEngine(version: .v3)
-        self.qwen3Engine = Qwen3AsrEngine(variant: .f32)
-        self.qwen3Int8Engine = Qwen3AsrEngine(variant: .int8)
+        self.parakeetUltraEngine = ParakeetEngine(version: .ultra)
     }
 
     func initialize() async {
@@ -185,12 +181,8 @@ final class Orchestrator {
                 switch appState.asrBackend {
                 case .parakeetV2:
                     try await parakeetV2Engine.ensureModelLoaded()
-                case .parakeet:
-                    try await parakeetEngine.ensureModelLoaded()
-                case .qwen3Asr:
-                    try await qwen3Engine.ensureModelLoaded()
-                case .qwen3AsrInt8:
-                    try await qwen3Int8Engine.ensureModelLoaded()
+                case .parakeetUltra:
+                    try await parakeetUltraEngine.ensureModelLoaded()
                 case .apple:
                     break
                 }
@@ -388,9 +380,7 @@ final class Orchestrator {
     private func batchStartSession() {
         switch appState.asrBackend {
         case .parakeetV2: parakeetV2Engine.startSession()
-        case .parakeet: parakeetEngine.startSession()
-        case .qwen3Asr: qwen3Engine.startSession()
-        case .qwen3AsrInt8: qwen3Int8Engine.startSession()
+        case .parakeetUltra: parakeetUltraEngine.startSession()
         case .apple: break
         }
     }
@@ -402,14 +392,8 @@ final class Orchestrator {
         case .parakeetV2:
             let engine = parakeetV2Engine
             return { buffer in engine.feedAudio(buffer) }
-        case .parakeet:
-            let engine = parakeetEngine
-            return { buffer in engine.feedAudio(buffer) }
-        case .qwen3Asr:
-            let engine = qwen3Engine
-            return { buffer in engine.feedAudio(buffer) }
-        case .qwen3AsrInt8:
-            let engine = qwen3Int8Engine
+        case .parakeetUltra:
+            let engine = parakeetUltraEngine
             return { buffer in engine.feedAudio(buffer) }
         case .apple:
             return { _ in }
@@ -419,9 +403,7 @@ final class Orchestrator {
     private func batchTargetFormat() -> AVAudioFormat? {
         switch appState.asrBackend {
         case .parakeetV2: return parakeetV2Engine.targetFormat
-        case .parakeet: return parakeetEngine.targetFormat
-        case .qwen3Asr: return qwen3Engine.targetFormat
-        case .qwen3AsrInt8: return qwen3Int8Engine.targetFormat
+        case .parakeetUltra: return parakeetUltraEngine.targetFormat
         case .apple: return nil
         }
     }
@@ -429,9 +411,7 @@ final class Orchestrator {
     private func batchFinishSession() async throws -> String {
         switch appState.asrBackend {
         case .parakeetV2: return try await parakeetV2Engine.finishSession()
-        case .parakeet: return try await parakeetEngine.finishSession()
-        case .qwen3Asr: return try await qwen3Engine.finishSession()
-        case .qwen3AsrInt8: return try await qwen3Int8Engine.finishSession()
+        case .parakeetUltra: return try await parakeetUltraEngine.finishSession()
         case .apple: return ""
         }
     }
@@ -448,10 +428,8 @@ final class Orchestrator {
         switch backend {
         case .parakeetV2:
             exists = AsrModels.modelsExist(at: dir, version: .v2)
-        case .parakeet:
-            exists = AsrModels.modelsExist(at: dir, version: .v3)
-        case .qwen3Asr, .qwen3AsrInt8:
-            exists = Qwen3AsrModels.modelsExist(at: dir)
+        case .parakeetUltra:
+            exists = AsrModels.modelsExist(at: dir, version: .ultra)
         case .apple:
             exists = true
         }
@@ -484,12 +462,8 @@ final class Orchestrator {
             switch backend {
             case .parakeetV2:
                 try await parakeetV2Engine.ensureModelLoaded()
-            case .parakeet:
-                try await parakeetEngine.ensureModelLoaded()
-            case .qwen3Asr:
-                try await qwen3Engine.ensureModelLoaded()
-            case .qwen3AsrInt8:
-                try await qwen3Int8Engine.ensureModelLoaded()
+            case .parakeetUltra:
+                try await parakeetUltraEngine.ensureModelLoaded()
             case .apple:
                 break
             }
@@ -558,9 +532,7 @@ final class Orchestrator {
     private static func cacheDirectory(for backend: AsrBackend) -> URL {
         switch backend {
         case .parakeetV2: return AsrModels.defaultCacheDirectory(for: .v2)
-        case .parakeet: return AsrModels.defaultCacheDirectory(for: .v3)
-        case .qwen3Asr: return Qwen3AsrModels.defaultCacheDirectory(variant: .f32)
-        case .qwen3AsrInt8: return Qwen3AsrModels.defaultCacheDirectory(variant: .int8)
+        case .parakeetUltra: return AsrModels.defaultCacheDirectory(for: .ultra)
         case .apple: return URL(fileURLWithPath: "/dev/null")
         }
     }
@@ -568,9 +540,7 @@ final class Orchestrator {
     private static func expectedModelBytes(for backend: AsrBackend) -> Int64 {
         switch backend {
         case .parakeetV2: return 473_000_000
-        case .parakeet: return 484_000_000
-        case .qwen3Asr: return 3_512_000_000
-        case .qwen3AsrInt8: return 2_304_000_000
+        case .parakeetUltra: return 630_000_000
         case .apple: return 1
         }
     }
@@ -736,9 +706,7 @@ final class Orchestrator {
 
     private func unloadAllModels() {
         if parakeetV2Engine.isLoaded { parakeetV2Engine.unload() }
-        if parakeetEngine.isLoaded { parakeetEngine.unload() }
-        if qwen3Engine.isLoaded { qwen3Engine.unload() }
-        if qwen3Int8Engine.isLoaded { qwen3Int8Engine.unload() }
+        if parakeetUltraEngine.isLoaded { parakeetUltraEngine.unload() }
         if mlxPostProcessor.isLoaded { mlxPostProcessor.unload() }
     }
 }

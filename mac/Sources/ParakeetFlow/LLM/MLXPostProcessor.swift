@@ -1,7 +1,10 @@
 import Foundation
-import MLXLMCommon
-import MLXLLM
+import HuggingFace
 import MLX
+import MLXLLM
+import MLXLMCommon
+import MLXHuggingFace
+import Tokenizers
 
 /// MLX-based LLM post-processor using mlx-swift-lm.
 /// Follows the ParakeetEngine pattern: lazy model loading, @unchecked Sendable.
@@ -27,7 +30,12 @@ final class MLXPostProcessor: @unchecked Sendable {
     func ensureModelLoaded(progress: (@Sendable (Progress) -> Void)? = nil) async throws {
         guard container == nil else { return }
         Memory.cacheLimit = 512 * 1024 * 1024
-        let loaded = try await loadModelContainer(id: modelID, progressHandler: progress ?? { _ in })
+        let loaded = try await loadModelContainer(
+            from: #hubDownloader(),
+            using: #huggingFaceTokenizerLoader(),
+            id: modelID,
+            progressHandler: progress ?? { _ in }
+        )
         container = loaded
     }
 
@@ -77,9 +85,12 @@ final class MLXPostProcessor: @unchecked Sendable {
     }
 
     /// Returns the cache directory for a given model ID.
-    /// Uses the same `defaultHubApi` (cachesDirectory) that `loadModelContainer` uses.
+    /// Uses the same default `HubCache` that `#hubDownloader()` uses.
     static func modelCacheDirectory(for modelID: String) -> URL {
-        defaultHubApi.localRepoLocation(.init(id: modelID))
+        guard let repo = Repo.ID(rawValue: modelID) else {
+            return HubCache.default.cacheDirectory.appendingPathComponent(modelID)
+        }
+        return HubCache.default.repoDirectory(repo: repo, kind: .model)
     }
 }
 
