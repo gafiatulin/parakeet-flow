@@ -108,7 +108,7 @@ All settings are accessible from the menu bar icon → Settings:
 - **Dictionary** — custom word corrections with configurable fuzzy match threshold
 - **Recording overlay** — waveform color and visibility
 - **Model memory management** — auto-unload models after inactivity
-- **Performance benchmarks** — average ASR/LLM/total latency and RTF in Settings → Performance
+- **Performance benchmarks** — per-run latency/RTF, aggregate history stats, and a runnable active-model benchmark on generated speech in Settings → Performance
 - **Update check** — compares the current version with the latest GitHub release
 
 ## License
