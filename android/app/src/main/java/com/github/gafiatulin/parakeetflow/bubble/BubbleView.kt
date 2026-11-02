@@ -11,12 +11,15 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,6 +31,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
@@ -43,11 +47,92 @@ import kotlin.math.abs
 private const val LONG_PRESS_MS = 300L
 private const val TAP_SLOP_PX = 30f
 private const val PRESSURE_THRESHOLD = 0.3f
+private const val BUBBLE_PADDING_DP = 28
+
+// Control geometry is shared with BubbleOverlayManager so it can offset the
+// overlay window by exactly the cluster width when controls sit left of the bubble.
+internal const val BUBBLE_CONTROL_BUTTON_DP = 44
+internal const val BUBBLE_CONTROL_GAP_DP = 12
+internal const val BUBBLE_CONTROLS_BUBBLE_GAP_DP = 8
+internal const val BUBBLE_CONTROLS_CLUSTER_DP = BUBBLE_CONTROL_BUTTON_DP * 2 + BUBBLE_CONTROL_GAP_DP
+internal const val BUBBLE_CONTROLS_INSET_DP = BUBBLE_CONTROLS_CLUSTER_DP + BUBBLE_CONTROLS_BUBBLE_GAP_DP
+internal const val BUBBLE_CONTROLS_BELOW_HEIGHT_DP = BUBBLE_CONTROL_BUTTON_DP + BUBBLE_CONTROLS_BUBBLE_GAP_DP
 
 @Composable
 fun BubbleView(
     phase: AppPhase,
     dismissProgress: Float,
+    bubbleSizeDp: Int,
+    bubbleColorArgb: Int,
+    bubbleOpacity: Float,
+    controlsBeside: Boolean,
+    onRightEdge: Boolean,
+    onTap: () -> Unit,
+    onHoldStart: () -> Unit,
+    onHoldEnd: () -> Unit,
+    onDragStart: () -> Unit,
+    onDrag: (Offset) -> Unit,
+    onDragEnd: () -> Unit,
+    onCancel: () -> Unit,
+    onPauseResume: () -> Unit
+) {
+    val showControls = phase == AppPhase.RECORDING || phase == AppPhase.PAUSED
+
+    val bubble = @Composable {
+        DictationBubble(
+            phase = phase,
+            dismissProgress = dismissProgress,
+            bubbleSizeDp = bubbleSizeDp,
+            bubbleColorArgb = bubbleColorArgb,
+            bubbleOpacity = bubbleOpacity,
+            onTap = onTap,
+            onHoldStart = onHoldStart,
+            onHoldEnd = onHoldEnd,
+            onDragStart = onDragStart,
+            onDrag = onDrag,
+            onDragEnd = onDragEnd
+        )
+    }
+    val controls = @Composable {
+        BubbleControls(phase = phase, onCancel = onCancel, onPauseResume = onPauseResume)
+    }
+
+    val gap = Arrangement.spacedBy(BUBBLE_CONTROLS_BUBBLE_GAP_DP.dp)
+    when {
+        !showControls -> bubble()
+        // Controls below the bubble
+        !controlsBeside -> Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = gap
+        ) {
+            bubble()
+            controls()
+        }
+        // Controls beside the bubble, on the inward side (toward screen center)
+        onRightEdge -> Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = gap
+        ) {
+            controls()
+            bubble()
+        }
+        else -> Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = gap
+        ) {
+            bubble()
+            controls()
+        }
+    }
+}
+
+@Composable
+private fun DictationBubble(
+    phase: AppPhase,
+    dismissProgress: Float,
+    bubbleSizeDp: Int,
+    bubbleColorArgb: Int,
+    bubbleOpacity: Float,
     onTap: () -> Unit,
     onHoldStart: () -> Unit,
     onHoldEnd: () -> Unit,
@@ -58,10 +143,11 @@ fun BubbleView(
     val bgColor by animateColorAsState(
         targetValue = when (phase) {
             AppPhase.RECORDING -> RecordingRed
+            AppPhase.PAUSED -> Color(0xFF757575)
             AppPhase.PROCESSING -> ProcessingAmber
             AppPhase.INSERTING -> ParakeetGreen
             AppPhase.ERROR -> MaterialTheme.colorScheme.error
-            AppPhase.IDLE -> ParakeetGreen
+            AppPhase.IDLE -> Color(bubbleColorArgb)
         },
         label = "bubbleColor"
     )
@@ -93,14 +179,20 @@ fun BubbleView(
         label = "bubbleScale"
     )
 
-    Box(modifier = Modifier
-        .size(120.dp),
+    val visibleSize = bubbleSizeDp.dp
+    // Keep a fixed padding around the visible bubble for the pulsation.
+    val containerSize = (bubbleSizeDp + BUBBLE_PADDING_DP * 2).dp
+    val iconSize = (bubbleSizeDp * 30 / 64).dp
+
+    Box(
+        modifier = Modifier.size(containerSize),
         contentAlignment = Alignment.Center
     ) {
         Box(
             modifier = Modifier
-                .size(64.dp)
+                .size(visibleSize)
                 .scale(animScale)
+                .alpha(bubbleOpacity)
                 .shadow(4.dp, CircleShape)
                 .background(bgColor, CircleShape)
                 .pointerInput(Unit) {
@@ -111,7 +203,6 @@ fun BubbleView(
                                 val down = awaitPointerEvent()
                                 if (down.type != PointerEventType.Press) continue
                                 val downId = down.changes.firstOrNull()?.id ?: continue
-                                val downPos = down.changes.first().position
                                 val downPressure = down.changes.first().pressure
 
                                 var isDragging = false
@@ -179,14 +270,61 @@ fun BubbleView(
             Icon(
                 imageVector = when (phase) {
                     AppPhase.RECORDING -> Icons.Default.Mic
+                    AppPhase.PAUSED -> Icons.Default.Pause
                     AppPhase.PROCESSING -> Icons.Default.Sync
                     else -> Icons.Default.MicOff
                 },
                 contentDescription = "Dictation",
                 tint = Color.White,
-                modifier = Modifier.size(30.dp)
+                modifier = Modifier.size(iconSize)
             )
         }
+    }
+}
+
+@Composable
+private fun BubbleControls(
+    phase: AppPhase,
+    onCancel: () -> Unit,
+    onPauseResume: () -> Unit
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(BUBBLE_CONTROL_GAP_DP.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        BubbleControlButton(
+            icon = Icons.Default.Close,
+            contentDescription = "Cancel",
+            onClick = onCancel
+        )
+        BubbleControlButton(
+            icon = if (phase == AppPhase.PAUSED) Icons.Default.PlayArrow else Icons.Default.Pause,
+            contentDescription = if (phase == AppPhase.PAUSED) "Resume" else "Pause",
+            onClick = onPauseResume
+        )
+    }
+}
+
+@Composable
+private fun BubbleControlButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(BUBBLE_CONTROL_BUTTON_DP.dp)
+            .shadow(4.dp, CircleShape)
+            .background(Color.Black.copy(alpha = 0.55f), CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = Color.White,
+            modifier = Modifier.size(22.dp)
+        )
     }
 }
 

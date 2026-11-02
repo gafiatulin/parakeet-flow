@@ -8,8 +8,13 @@ import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
@@ -19,6 +24,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
@@ -109,6 +115,12 @@ fun SettingsScreen(
     fun reloadService() {
         context.startService(Intent(context, DictationService::class.java).apply {
             action = DictationService.ACTION_RELOAD
+        })
+    }
+
+    fun refreshBubble() {
+        context.startService(Intent(context, DictationService::class.java).apply {
+            action = DictationService.ACTION_REFRESH_BUBBLE
         })
     }
 
@@ -345,6 +357,85 @@ fun SettingsScreen(
                 }
             )
 
+            // Bubble size
+            var sizeSlider by remember(settings.bubbleSizeDp) {
+                mutableFloatStateOf(settings.bubbleSizeDp.toFloat())
+            }
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                Text("Bubble size: ${sizeSlider.toInt()} dp", style = MaterialTheme.typography.bodyMedium)
+                Slider(
+                    value = sizeSlider,
+                    onValueChange = { sizeSlider = it },
+                    onValueChangeFinished = {
+                        settingsViewModel.setBubbleSizeDp(sizeSlider.toInt())
+                        refreshBubble()
+                    },
+                    valueRange = 48f..96f
+                )
+            }
+
+            // Bubble opacity
+            var opacitySlider by remember(settings.bubbleOpacity) {
+                mutableFloatStateOf(settings.bubbleOpacity)
+            }
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                Text("Bubble opacity: ${(opacitySlider * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium)
+                Slider(
+                    value = opacitySlider,
+                    onValueChange = { opacitySlider = it },
+                    onValueChangeFinished = {
+                        settingsViewModel.setBubbleOpacity(opacitySlider)
+                        refreshBubble()
+                    },
+                    valueRange = 0.3f..1f
+                )
+            }
+
+            // Bubble color
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                Text("Bubble color", style = MaterialTheme.typography.bodyMedium)
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    BUBBLE_COLOR_PRESETS.forEach { argb ->
+                        val selected = settings.bubbleColor == argb
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(Color(argb), CircleShape)
+                                .border(
+                                    width = if (selected) 3.dp else 1.dp,
+                                    color = if (selected) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.outlineVariant,
+                                    shape = CircleShape
+                                )
+                                .clickable {
+                                    settingsViewModel.setBubbleColor(argb)
+                                    refreshBubble()
+                                }
+                        )
+                    }
+                }
+            }
+
+            ListItem(
+                headlineContent = { Text("Controls beside bubble") },
+                supportingContent = { Text("Show pause/cancel left or right of the bubble by edge, instead of below") },
+                trailingContent = {
+                    Switch(
+                        checked = settings.bubbleControlsBeside,
+                        onCheckedChange = {
+                            settingsViewModel.setBubbleControlsBeside(it)
+                            refreshBubble()
+                        }
+                    )
+                }
+            )
+
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
             Text(
@@ -374,3 +465,15 @@ fun SettingsScreen(
         }
     }
 }
+
+/** Preset idle-bubble colors (packed ARGB), offered as swatches in Settings. */
+private val BUBBLE_COLOR_PRESETS = listOf(
+    0xFF4CAF50.toInt(), // green (default)
+    0xFF2196F3.toInt(), // blue
+    0xFF9C27B0.toInt(), // purple
+    0xFFF44336.toInt(), // red
+    0xFFFF9800.toInt(), // orange
+    0xFF009688.toInt(), // teal
+    0xFF607D8B.toInt(), // blue gray
+    0xFF000000.toInt()  // black
+)

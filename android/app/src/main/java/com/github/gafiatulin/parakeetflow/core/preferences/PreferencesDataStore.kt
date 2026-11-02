@@ -5,10 +5,12 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.github.gafiatulin.parakeetflow.core.model.BubblePosition
+import com.github.gafiatulin.parakeetflow.core.model.DEFAULT_BUBBLE_COLOR
 import com.github.gafiatulin.parakeetflow.core.model.UserSettings
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -34,6 +36,10 @@ class PreferencesDataStore @Inject constructor(
         val LLM_GPU = booleanPreferencesKey("llm_gpu")
         val LINGERING_BUBBLE = booleanPreferencesKey("lingering_bubble")
         val HF_TOKEN = stringPreferencesKey("hf_token")
+        val BUBBLE_SIZE_DP = intPreferencesKey("bubble_size_dp")
+        val BUBBLE_COLOR = intPreferencesKey("bubble_color")
+        val BUBBLE_OPACITY = floatPreferencesKey("bubble_opacity")
+        val BUBBLE_CONTROLS_BESIDE = booleanPreferencesKey("bubble_controls_beside")
     }
 
     val settings: Flow<UserSettings> = context.dataStore.data.map { prefs ->
@@ -50,7 +56,11 @@ class PreferencesDataStore @Inject constructor(
             autoPunctuation = prefs[Keys.AUTO_PUNCTUATION] ?: true,
             llmGpu = prefs[Keys.LLM_GPU] ?: true,
             lingeringBubble = prefs[Keys.LINGERING_BUBBLE] ?: false,
-            hfToken = prefs[Keys.HF_TOKEN] ?: ""
+            hfToken = prefs[Keys.HF_TOKEN] ?: "",
+            bubbleSizeDp = prefs[Keys.BUBBLE_SIZE_DP] ?: 64,
+            bubbleColor = prefs[Keys.BUBBLE_COLOR] ?: DEFAULT_BUBBLE_COLOR,
+            bubbleOpacity = prefs[Keys.BUBBLE_OPACITY] ?: 1f,
+            bubbleControlsBeside = prefs[Keys.BUBBLE_CONTROLS_BESIDE] ?: true
         )
     }
 
@@ -95,5 +105,21 @@ class PreferencesDataStore @Inject constructor(
 
     suspend fun setHfToken(token: String) {
         context.dataStore.edit { it[Keys.HF_TOKEN] = token }
+    }
+
+    suspend fun setBubbleSizeDp(size: Int) {
+        context.dataStore.edit { it[Keys.BUBBLE_SIZE_DP] = size }
+    }
+
+    suspend fun setBubbleColor(color: Int) {
+        context.dataStore.edit { it[Keys.BUBBLE_COLOR] = color }
+    }
+
+    suspend fun setBubbleOpacity(opacity: Float) {
+        context.dataStore.edit { it[Keys.BUBBLE_OPACITY] = opacity }
+    }
+
+    suspend fun setBubbleControlsBeside(beside: Boolean) {
+        context.dataStore.edit { it[Keys.BUBBLE_CONTROLS_BESIDE] = beside }
     }
 }

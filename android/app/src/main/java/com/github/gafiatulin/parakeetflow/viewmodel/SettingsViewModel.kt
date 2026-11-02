@@ -46,4 +46,20 @@ class SettingsViewModel @Inject constructor(
     fun setHfToken(token: String) {
         viewModelScope.launch { preferencesDataStore.setHfToken(token) }
     }
+
+    fun setBubbleSizeDp(size: Int) {
+        viewModelScope.launch { preferencesDataStore.setBubbleSizeDp(size) }
+    }
+
+    fun setBubbleColor(color: Int) {
+        viewModelScope.launch { preferencesDataStore.setBubbleColor(color) }
+    }
+
+    fun setBubbleOpacity(opacity: Float) {
+        viewModelScope.launch { preferencesDataStore.setBubbleOpacity(opacity) }
+    }
+
+    fun setBubbleControlsBeside(beside: Boolean) {
+        viewModelScope.launch { preferencesDataStore.setBubbleControlsBeside(beside) }
+    }
 }
