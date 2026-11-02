@@ -19,7 +19,10 @@ packages:
     exactVersion: 3.32.3
   swift-huggingface:
     url: https://github.com/huggingface/swift-huggingface.git
-    exactVersion: 0.13.0
+    exactVersion: 1.0.0
+  AnySpeechRecognizer:
+    url: https://github.com/mattt/AnySpeechRecognizer.git
+    exactVersion: 0.1.0
   swift-transformers:
     url: https://github.com/huggingface/swift-transformers.git
     exactVersion: 1.4.0
@@ -46,6 +49,8 @@ targets:
         product: HuggingFace
       - package: swift-transformers
         product: Tokenizers
+      - package: AnySpeechRecognizer
+        product: AnySpeechRecognizer
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.github.gafiatulin.ParakeetFlow

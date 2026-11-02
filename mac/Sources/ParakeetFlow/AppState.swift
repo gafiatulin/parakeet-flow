@@ -117,6 +117,7 @@ enum AsrBackend: String, CaseIterable {
     case parakeetUltra
     case bark3
     case bark3Clean
+    case qwen3Asr
 
     var label: String {
         switch self {
@@ -125,13 +126,14 @@ enum AsrBackend: String, CaseIterable {
         case .parakeetUltra: return "Parakeet Ultra (Multilingual)"
         case .bark3: return "Bark 3.0 (English, 163 MB)"
         case .bark3Clean: return "Bark 3.0 Clean (English dictation)"
+        case .qwen3Asr: return "Qwen3-ASR 0.6B (30 languages)"
         }
     }
 
     var needsDownload: Bool {
         switch self {
         case .apple: return false
-        case .parakeetV2, .parakeetUltra, .bark3, .bark3Clean: return true
+        case .parakeetV2, .parakeetUltra, .bark3, .bark3Clean, .qwen3Asr: return true
         }
     }
 }
@@ -304,8 +306,12 @@ final class AppState {
         self.hotkeyChoice = HotkeyChoice(rawValue: defaults.string(forKey: "hotkeyChoice") ?? "") ?? .option
         self.hotkeyMode = HotkeyMode(rawValue: defaults.string(forKey: "hotkeyMode") ?? "") ?? .hold
         let savedAsrBackend = defaults.string(forKey: "asrBackend") ?? ""
-        if savedAsrBackend == "qwen3Asr" || savedAsrBackend == "qwen3AsrInt8" || savedAsrBackend == "parakeet" {
-            // Qwen3 ASR and Parakeet v3 were removed; migrate those users to Ultra.
+        if savedAsrBackend == "qwen3AsrInt8" {
+            // The old Qwen3 Int8 backend was replaced by the 30-language Qwen3-ASR model.
+            self.asrBackend = .qwen3Asr
+            defaults.set(AsrBackend.qwen3Asr.rawValue, forKey: "asrBackend")
+        } else if savedAsrBackend == "parakeet" {
+            // Parakeet v3 was removed; migrate those users to Ultra.
             self.asrBackend = .parakeetUltra
             defaults.set(AsrBackend.parakeetUltra.rawValue, forKey: "asrBackend")
         } else {
