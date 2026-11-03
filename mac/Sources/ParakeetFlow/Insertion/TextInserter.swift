@@ -1,14 +1,38 @@
 import Cocoa
 import ApplicationServices
 import Carbon.HIToolbox
+import os
+
+/// What the frontmost app currently reports as its focused element.
+enum TextFocusKind: Equatable {
+    /// The focus is a text control (text field, text view, web editor, ...).
+    case editable
+    /// The focus is a control that cannot receive text (Finder items, menus, ...).
+    case notEditable
+    /// The app did not expose a usable accessibility element. Electron and
+    /// Chromium apps (VS Code, Slack, Chrome, ...) keep their accessibility
+    /// tree disabled until an assistive client asks for it, so this is the
+    /// normal answer for them.
+    case unknown
+}
 
 enum TextInserter {
-    /// Returns true when the text was sent to an editable target. When there
-    /// is no editable text focus (Finder desktop/list, a menu, an image, etc.),
-    /// the transcript is copied instead of sending Cmd+V into arbitrary UI.
+    private static let logger = Logger(
+        subsystem: "com.github.gafiatulin.ParakeetFlow", category: "Insertion"
+    )
+
+    /// Returns true when the text was sent to an editable target. When the
+    /// focused element is known to be non-text (Finder desktop/list, a menu, an
+    /// image, etc.), the transcript is copied instead of sending Cmd+V into
+    /// arbitrary UI. Inconclusive targets are treated as editable so dictation
+    /// is never silently dropped in Electron/Chromium apps.
     @discardableResult
     static func insert(_ text: String, method: PasteMethod) async -> Bool {
-        if method != .clipboardOnly, !hasEditableTextFocus() {
+        let kind = method == .clipboardOnly ? TextFocusKind.editable : textFocusKind()
+        logger.notice(
+            "Insertion target: \(String(describing: kind), privacy: .public) in \(NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "?", privacy: .public)"
+        )
+        if kind == .notEditable {
             copyToClipboard(text)
             return false
         }
@@ -38,48 +62,88 @@ enum TextInserter {
     /// This prevents a normal Finder selection from receiving a Cmd+V that
     /// Finder treats as a file operation.
     static func hasEditableTextFocus() -> Bool {
-        guard let app = NSWorkspace.shared.frontmostApplication else { return false }
+        textFocusKind() != .notEditable
+    }
+
+    /// Classifies the focused element of the frontmost app. Never enables the
+    /// target app's accessibility tree: doing so switches Chromium apps into
+    /// their screen-reader mode, which is both slow and visible to the user.
+    static func textFocusKind() -> TextFocusKind {
+        guard let app = NSWorkspace.shared.frontmostApplication else { return .unknown }
+        return effectiveFocusKind(rawFocusKind(for: app), bundleID: app.bundleIdentifier)
+    }
+
+    /// Focus classification straight from the accessibility tree. `.unknown`
+    /// means the app did not answer, which is normal for Electron/Chromium
+    /// apps because their accessibility tree stays disabled until an
+    /// assistive client asks for it.
+    static func rawFocusKind(for app: NSRunningApplication) -> TextFocusKind {
         let appElement = AXUIElementCreateApplication(app.processIdentifier)
         var focusedElement: AnyObject?
         guard AXUIElementCopyAttributeValue(
             appElement,
             kAXFocusedUIElementAttribute as CFString,
             &focusedElement
-        ) == .success else {
-            return false
+        ) == .success, let focusedElement else {
+            return .unknown
         }
 
-        let element = focusedElement as! AXUIElement
+        return focusKind(for: focusedElement as! AXUIElement)
+    }
+
+    /// Resolves an inconclusive accessibility answer. File managers report no
+    /// useful focused element even when their file list is focused, and a
+    /// Cmd+V there is a file operation — so an unknown focus means "copied to
+    /// the clipboard" rather than "paste into the folder". Everywhere else an
+    /// unknown focus means an app with a hidden accessibility tree (VS Code,
+    /// Slack, Chrome, ...), which does accept text.
+    static func effectiveFocusKind(_ kind: TextFocusKind, bundleID: String?) -> TextFocusKind {
+        guard kind == .unknown, let bundleID, fileManagerBundleIDs.contains(bundleID) else {
+            return kind
+        }
+        return .notEditable
+    }
+
+    static func focusKind(for element: AXUIElement) -> TextFocusKind {
         var roleValue: AnyObject?
         AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &roleValue)
-        let role = roleValue as? String
 
-        if let role, isEditableRole(role) {
-            return true
+        var settable: DarwinBoolean = false
+        let settableResult = AXUIElementIsAttributeSettable(
+            element, kAXValueAttribute as CFString, &settable
+        )
+
+        var selectedRange: AnyObject?
+        let hasSelectedTextRange = AXUIElementCopyAttributeValue(
+            element, kAXSelectedTextRangeAttribute as CFString, &selectedRange
+        ) == .success
+
+        return focusKind(
+            role: roleValue as? String,
+            valueSettable: settableResult == .success && settable.boolValue,
+            hasSelectedTextRange: hasSelectedTextRange
+        )
+    }
+
+    /// Pure role/attribute classification, split out so it can be tested.
+    static func focusKind(
+        role: String?,
+        valueSettable: Bool,
+        hasSelectedTextRange: Bool
+    ) -> TextFocusKind {
+        if let role {
+            if editableRoles.contains(role) { return .editable }
+            if nonTextRoles.contains(role) { return .notEditable }
         }
 
         // Some web views expose a settable value without a conventional role.
         // Require a text selection range as evidence that this is a text
         // control, not a Finder icon or another settable UI element.
-        var settable: DarwinBoolean = false
-        guard AXUIElementIsAttributeSettable(
-            element, kAXValueAttribute as CFString, &settable
-        ) == .success, settable.boolValue else {
-            return false
-        }
+        if valueSettable && hasSelectedTextRange { return .editable }
 
-        var selectedRange: AnyObject?
-        guard AXUIElementCopyAttributeValue(
-            element, kAXSelectedTextRangeAttribute as CFString, &selectedRange
-        ) == .success else {
-            return false
-        }
-
-        // Reject non-text containers that happen to expose a settable value.
-        if let role, nonTextRoles.contains(role) {
-            return false
-        }
-        return true
+        // Unknown roles (AXWebArea, AXGroup, empty Electron trees, ...) are
+        // inconclusive: let the caller paste rather than drop the dictation.
+        return .unknown
     }
 
     static func isEditableRole(_ role: String) -> Bool {
@@ -91,6 +155,15 @@ enum TextInserter {
         kAXTextAreaRole as String,
         kAXComboBoxRole as String,
         "AXSearchField",
+    ]
+
+    /// Apps where an inconclusive focus still means "a file list is focused"
+    /// and Cmd+V would duplicate or create files instead of typing text.
+    private static let fileManagerBundleIDs: Set<String> = [
+        "com.apple.finder",
+        "com.cocoatech.PathFinder",
+        "com.binarynights.ForkLift",
+        "com.panic.Transmit",
     ]
 
     private static let nonTextRoles: Set<String> = [
@@ -122,17 +195,21 @@ enum TextInserter {
         // Set our text on the clipboard
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
+        let changeCount = pasteboard.changeCount
 
         // Small delay to ensure pasteboard is ready
         try? await Task.sleep(for: .milliseconds(50))
 
         // Simulate Cmd+V
-        simulatePaste()
+        await simulatePaste()
 
-        // Wait for paste to complete, then restore
-        try? await Task.sleep(for: .milliseconds(100))
+        // Chromium/Electron apps (VS Code, Slack, Chrome) read the pasteboard
+        // asynchronously from a renderer process, so give them more time than
+        // native text views before restoring the previous clipboard.
+        try? await Task.sleep(for: .milliseconds(300))
 
-        if !savedData.isEmpty {
+        // Don't clobber anything the user copied while we waited.
+        if !savedData.isEmpty, pasteboard.changeCount == changeCount {
             pasteboard.clearContents()
             for (type, data) in savedData {
                 pasteboard.setData(data, forType: type)
@@ -140,7 +217,7 @@ enum TextInserter {
         }
     }
 
-    private static func simulatePaste() {
+    private static func simulatePaste() async {
         let source = CGEventSource(stateID: .combinedSessionState)
 
         // Key code 9 = V key
@@ -151,6 +228,10 @@ enum TextInserter {
         keyUp?.flags = .maskCommand
 
         keyDown?.post(tap: .cgAnnotatedSessionEventTap)
+
+        // Give slower app runtimes a chance to see a real key press.
+        try? await Task.sleep(for: .milliseconds(10))
+
         keyUp?.post(tap: .cgAnnotatedSessionEventTap)
     }
 
