@@ -1,6 +1,7 @@
 # Swift / Xcode
 .build/
 DerivedData/
+build/
 *.xcodeproj
 *.xcuserdata
 xcuserdata/

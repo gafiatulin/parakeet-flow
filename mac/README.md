@@ -6,16 +6,16 @@ Hold a hotkey to record, release to transcribe and insert cleaned-up text at the
 
 ## Features
 
-- **Streaming transcription** via Apple SpeechAnalyzer and live Parakeet partials
+- **Streaming transcription** via Apple SpeechAnalyzer, Parakeet partials, and Nemotron 3.5 multilingual streaming
 - **Silero VAD** speech gate that drops silent captures
-- **LLM cleanup** via Apple FoundationModels (on-device Apple Intelligence) or MLX (Qwen, Phi, Llama)
+- **LLM cleanup** via Apple FoundationModels or MLX, with a fine-tuned Qwen3.5-0.8B dictation-cleanup model as the default
 - **Push-to-talk, tap-to-lock, and toggle** shortcut modes
 - **Context-aware** prompts using the active app and selected text
 - **Filler word removal** (um, uh, like, etc.)
 - **Custom dictionary** with fuzzy + phonetic matching (Levenshtein + Soundex) for names, technical terms, and frequently misheard words
 - **Recording overlay** with animated waveform indicator
 - **Transcription history** stored in SwiftData with full pipeline visibility, per-run latency/RTF, and Markdown/JSON export
-- **Alternative ASR backends** via FluidAudio (Parakeet TDT v2 (English), Parakeet Ultra (Multilingual))
+- **ASR backends** — Apple Speech, Parakeet TDT v2/Ultra, Bark 3.0/3.0 Clean, Qwen3-ASR 0.6B (30 languages), and Nemotron 3.5 Streaming (40 locales)
 
 ## Requirements
 
@@ -100,15 +100,15 @@ Quick-tap the hotkey for hands-free mode (tap again to stop). Press Escape to ca
 
 All settings are accessible from the menu bar icon → Settings:
 
-- **ASR backend** — Apple Speech (built-in), Parakeet TDT v2 (English), Parakeet Ultra (Multilingual)
-- **LLM backend** — Apple Intelligence, MLX (Qwen 3.5, Phi-4 Mini, Llama 3.2)
+- **ASR backend** — Apple Speech, Parakeet TDT v2/Ultra, Bark 3.0/3.0 Clean, Qwen3-ASR 0.6B, Nemotron 3.5 Streaming
+- **LLM backend** — Apple Intelligence, MLX (Qwen 3.5 0.8B Cleanup default, Qwen 3.5 2B, Phi-4 Mini, Llama 3.2)
 - **Hotkey** — Option, Command, Control, or Fn
 - **Paste method** — Cmd+V, Accessibility API, key-by-key typing, or clipboard only
 - **Filler words** — customizable list of words to strip
 - **Dictionary** — custom word corrections with configurable fuzzy match threshold
 - **Recording overlay** — waveform color and visibility
 - **Model memory management** — auto-unload models after inactivity
-- **Performance benchmarks** — average ASR/LLM/total latency and RTF in Settings → Performance
+- **Performance benchmarks** — per-run latency/RTF, aggregate history stats, and a runnable active-model benchmark on generated speech in Settings → Performance
 - **Update check** — compares the current version with the latest GitHub release
 
 ## License

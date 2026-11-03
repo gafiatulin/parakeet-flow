@@ -1,8 +1,10 @@
 package com.github.gafiatulin.parakeetflow.orchestrator
 
 import android.util.Log
+import com.github.gafiatulin.parakeetflow.asr.ChunkTranscriptionSession
 import com.github.gafiatulin.parakeetflow.asr.TranscriptionEngine
 import com.github.gafiatulin.parakeetflow.audio.AudioCaptureManager
+import com.github.gafiatulin.parakeetflow.audio.SileroVadSegmenter
 import com.github.gafiatulin.parakeetflow.audio.SpeechActivityDetector
 import com.github.gafiatulin.parakeetflow.context.ContextReader
 import com.github.gafiatulin.parakeetflow.core.model.AppPhase
@@ -52,7 +54,8 @@ class DictationOrchestrator @Inject constructor(
     private val historyRepository: HistoryRepository,
     private val preferencesDataStore: com.github.gafiatulin.parakeetflow.core.preferences.PreferencesDataStore,
     private val feedbackManager: FeedbackManager,
-    private val transcriptExporter: TranscriptExporter
+    private val transcriptExporter: TranscriptExporter,
+    private val vadSegmenter: SileroVadSegmenter
 ) {
     companion object {
         private const val TAG = "DictationOrchestrator"
@@ -63,6 +66,7 @@ class DictationOrchestrator @Inject constructor(
 
     @Volatile
     private var isRecording = false
+    private var chunkSession: ChunkTranscriptionSession? = null
 
     /**
      * Initializes the ASR engine with models from ModelManager.
@@ -140,6 +144,11 @@ class DictationOrchestrator @Inject constructor(
             isRecording = true
             serviceBridge.updatePhase(AppPhase.RECORDING)
             audioCaptureManager.startCapture()
+            if (transcriptionEngine.isReady) {
+                audioCaptureManager.currentSpeechSegments?.let { segments ->
+                    chunkSession = ChunkTranscriptionSession(transcriptionEngine, segments, scope)
+                }
+            }
             scope.launch { feedbackManager.onRecordingStart() }
             Log.i(TAG, "Recording started")
         } catch (e: Exception) {
@@ -190,12 +199,30 @@ class DictationOrchestrator @Inject constructor(
                 val samples = audioCaptureManager.stopCapture()
                 if (samples.isEmpty()) {
                     Log.d(TAG, "No audio samples captured")
+                    chunkSession?.cancel()
+                    chunkSession = null
                     serviceBridge.updatePhase(AppPhase.IDLE)
                     return@launch
                 }
                 Log.d(TAG, "Captured ${samples.size} samples (${samples.size / AudioCaptureManager.SAMPLE_RATE}s)")
 
-                if (!SpeechActivityDetector.containsSpeech(samples)) {
+                val onlineChunks = chunkSession?.finish()
+                chunkSession = null
+                val vadSegments = if (onlineChunks != null && onlineChunks.segmentCount > 1) {
+                    emptyList()
+                } else {
+                    vadSegmenter.segments(samples)
+                }
+                val speechSegments = when {
+                    onlineChunks != null &&
+                        onlineChunks.segmentCount > 1 &&
+                        onlineChunks.speechSamples >= samples.size / 2 &&
+                        onlineChunks.text.isNotBlank() -> emptyList()
+                    vadSegments.isNotEmpty() -> vadSegments
+                    SpeechActivityDetector.containsSpeech(samples) -> listOf(samples)
+                    else -> emptyList()
+                }
+                if (speechSegments.isEmpty()) {
                     Log.d(TAG, "Speech gate rejected silent capture")
                     serviceBridge.updatePhase(AppPhase.IDLE)
                     return@launch
@@ -214,7 +241,23 @@ class DictationOrchestrator @Inject constructor(
                     }
                 }
                 val asrStart = System.currentTimeMillis()
-                val rawText = transcriptionEngine.transcribe(samples)
+                val rawText = if (onlineChunks != null &&
+                    onlineChunks.segmentCount > 1 &&
+                    onlineChunks.speechSamples >= samples.size / 2 &&
+                    onlineChunks.text.isNotBlank()
+                ) {
+                    Log.d(TAG, "Using ${onlineChunks.segmentCount} online VAD segments")
+                    onlineChunks.text
+                } else if (speechSegments.size == 1 &&
+                    speechSegments.first().size >= samples.size * 9 / 10
+                ) {
+                    transcriptionEngine.transcribe(samples)
+                } else {
+                    Log.d(TAG, "Transcribing ${speechSegments.size} VAD segment(s)")
+                    speechSegments.mapNotNull { segment ->
+                        transcriptionEngine.transcribe(segment).takeIf { it.isNotBlank() }
+                    }.joinToString(" ")
+                }
                 val asrMillis = System.currentTimeMillis() - asrStart
                 if (rawText.isBlank()) {
                     Log.d(TAG, "Transcription produced empty text")
@@ -291,6 +334,8 @@ class DictationOrchestrator @Inject constructor(
         if (!isRecording) return
         isRecording = false
 
+        chunkSession?.cancel()
+        chunkSession = null
         try {
             audioCaptureManager.stopCapture()
         } catch (e: Exception) {

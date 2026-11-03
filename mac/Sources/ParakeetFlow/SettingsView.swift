@@ -21,7 +21,7 @@ struct SettingsView: View {
                     .tabItem { Label("Dictionary", systemImage: "character.book.closed") }
             }
 
-            PerformanceSettingsView()
+            PerformanceSettingsView(orchestrator: orchestrator)
                 .tabItem { Label("Performance", systemImage: "speedometer") }
 
             PermissionsView()
@@ -93,6 +93,9 @@ struct GeneralSettingsView: View {
                 .onChange(of: appState.asrBackend) { _, _ in
                     orchestrator?.checkModelStatus()
                 }
+                Text(appState.asrBackend.detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
                 if appState.asrBackend.needsDownload {
                     HStack {
@@ -154,6 +157,10 @@ struct GeneralSettingsView: View {
 
                 if appState.asrBackend.needsDownload {
                     HStack {
+                        Button("Refresh Status") {
+                            orchestrator?.checkModelStatus()
+                        }
+                        .font(.caption)
                         Button("Show in Finder") {
                             orchestrator?.revealModelCache()
                         }
@@ -194,6 +201,9 @@ struct GeneralSettingsView: View {
                     }
 
                     if appState.llmBackend == .mlx {
+                        Text(appState.mlxModel.detail)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                         HStack {
                             switch appState.mlxModelStatus[appState.mlxModel] ?? .notDownloaded {
                             case .ready:
@@ -251,6 +261,10 @@ struct GeneralSettingsView: View {
                         }
 
                         HStack {
+                            Button("Refresh Status") {
+                                orchestrator?.checkLlmModelStatus()
+                            }
+                            .font(.caption)
                             Button("Show in Finder") {
                                 orchestrator?.revealLlmModelCache()
                             }

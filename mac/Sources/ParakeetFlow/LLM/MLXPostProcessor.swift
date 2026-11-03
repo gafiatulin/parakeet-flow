@@ -15,7 +15,7 @@ final class MLXPostProcessor: @unchecked Sendable {
     /// Whether the model is currently loaded in memory.
     var isLoaded: Bool { container != nil }
 
-    init(modelID: String = MlxModelChoice.qwen35_2b.modelID) {
+    init(modelID: String = MlxModelChoice.qwen35_08b_cleanup.modelID) {
         self.modelID = modelID
     }
 
@@ -45,6 +45,14 @@ final class MLXPostProcessor: @unchecked Sendable {
             throw MLXPostProcessorError.notLoaded
         }
 
+        if modelID == MlxModelChoice.qwen35_08b_cleanup.modelID {
+            guard CleanupGuardrails.isMostlyLatin(rawText) else {
+                // The cleanup fine-tune is English-only; preserve other languages verbatim.
+                return rawText.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            return try await cleanupWithDictationModel(container, rawText: rawText)
+        }
+
         var instructions = PromptBuilder.buildSystemPrompt(context: context, removeFillers: removeFillers, dictionaryWords: dictionaryWords)
         // Qwen models support /no_think to disable chain-of-thought
         if modelID.lowercased().contains("qwen") {
@@ -64,6 +72,47 @@ final class MLXPostProcessor: @unchecked Sendable {
             response = String(response[thinkEnd.upperBound...])
         }
         return response.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Qwen3.5-0.8B full fine-tune trained for Parakeet-style dictation cleanup.
+    /// The model returns `{"cleaned_text": "..."}` and is deliberately
+    /// conservative; the guardrails below fall back to the raw transcript when
+    /// an edit looks destructive or malformed.
+    private func cleanupWithDictationModel(_ container: ModelContainer, rawText: String) async throws -> String {
+        let system = "You are a transcription formatting assistant. Follow the user's formatting instructions exactly and return only the final formatted transcript."
+        let user = """
+        You are a transcription cleanup assistant.
+
+        Convert the following raw transcript into polished, readable text.
+
+        Instructions:
+        1. Add punctuation and capitalization.
+        2. Split the text into natural sentences.
+        3. Break the text into readable paragraphs whenever the speaker moves into a new topic, example, action taken, or result.
+        4. Prefer short paragraphs of 1 to 3 sentences.
+        5. For medium-length monologues, favor multiple paragraphs over one dense block when the ideas naturally separate.
+        6. Use real paragraph breaks in the cleaned text.
+        7. Fix obvious speech-to-text errors.
+        8. Remove repeated words and filler sounds when unnecessary.
+        9. Keep the original meaning, tone, language and wording as close as possible.
+        10. Do not summarize, shorten, or add content.
+        11. Do not explain your edits.
+        12. Output only the final cleaned text.
+
+        Return JSON with one field: {"cleaned_text": "..."}.
+
+        Raw transcript:
+        \(rawText)
+        """
+
+        let session = ChatSession(
+            container,
+            instructions: system,
+            generateParameters: GenerateParameters(temperature: 0.2)
+        )
+        let response = try await session.respond(to: user)
+        let cleaned = CleanupGuardrails.extractCleanedText(response) ?? response
+        return CleanupGuardrails.guardCleanup(cleaned, raw: rawText)
     }
 
     /// Release the model from memory.
@@ -101,3 +150,4 @@ enum MLXPostProcessorError: LocalizedError {
         "MLX model not loaded. Download the model first."
     }
 }
+

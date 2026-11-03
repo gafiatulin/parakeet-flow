@@ -336,7 +336,9 @@ private struct BackendSelectionStepView: View {
                     .onChange(of: appState.asrBackend) { _, _ in
                         orchestrator?.checkModelStatus()
                     }
-
+                    Text(appState.asrBackend.detail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
 
 
                     if appState.asrBackend.needsDownload {

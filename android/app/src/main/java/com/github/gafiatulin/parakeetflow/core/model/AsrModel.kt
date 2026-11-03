@@ -23,5 +23,13 @@ enum class AsrModel(
         baseUrl = "https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/resolve/main",
         files = listOf("encoder.int8.onnx", "decoder.int8.onnx", "joiner.int8.onnx", "tokens.txt"),
         sizeLabel = "~640 MB",
+    ),
+    SENSE_VOICE(
+        displayName = "SenseVoice Small",
+        description = "Fast zh/en/ja/ko/yue",
+        dirName = "sensevoice-small",
+        baseUrl = "https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/resolve/main",
+        files = listOf("model.int8.onnx", "tokens.txt"),
+        sizeLabel = "~240 MB",
     );
 }

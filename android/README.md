@@ -1,6 +1,6 @@
 # ParakeetFlow Android
 
-On-device voice dictation for Android. Tap or hold the floating bubble to transcribe speech and insert text into any app via AccessibilityService. Drag it anywhere on screen, including over the status bar. While recording, pause/resume or cancel from the bubble. Bubble size, color, opacity, and control placement are configurable in Settings. Optional LLM post-processing cleans up grammar and punctuation. Silent captures are filtered by a speech gate, History shows per-run ASR/LLM/total latency and RTF, and finished transcripts can be exported as Markdown (with optional WAV) to a user-selected folder. Settings includes a GitHub-release update check.
+On-device voice dictation for Android. Tap or hold the floating bubble to transcribe speech and insert text into any app via AccessibilityService. Drag it anywhere on screen, including over the status bar. While recording, pause/resume or cancel from the bubble. Bubble size, color, opacity, and control placement are configurable in Settings. Optional LLM post-processing cleans up grammar and punctuation. Silent captures are filtered by a bundled Silero VAD, and long captures are split into VAD speech segments for chunked transcription. History shows per-run ASR/LLM/total latency and RTF, and finished transcripts can be exported as Markdown (with optional WAV) to a user-selected folder. Settings includes a GitHub-release update check.
 
 ## Architecture
 
@@ -9,7 +9,7 @@ Bubble (tap/hold) → AudioCaptureManager → Sherpa-ONNX ASR → FillerWordFilt
                                                                 (optional)          (optional)
 ```
 
-**ASR**: [NVIDIA Parakeet TDT 0.6B](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2) via [Sherpa-ONNX](https://github.com/k2-fsa/sherpa-onnx) (int8 quantized, offline transducer). Two model variants: v2 (English-only) and v3 (multilingual en/de/es/fr).
+**ASR**: [NVIDIA Parakeet TDT 0.6B](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2) via [Sherpa-ONNX](https://github.com/k2-fsa/sherpa-onnx) (int8 quantized, offline transducer), or SenseVoice Small for Chinese/English/Japanese/Korean/Cantonese. Model variants: Parakeet v2 (English-only), Parakeet v3 (en/de/es/fr), and SenseVoice Small (zh/en/ja/ko/yue).
 
 **LLM**: [Qwen3 0.6B](https://huggingface.co/litert-community/Qwen3-0.6B) via [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM) (dynamic_int8, CPU/GPU). Cleans up punctuation, capitalization, stutters, and backtrack phrases.
 

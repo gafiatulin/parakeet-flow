@@ -15,15 +15,17 @@ On-device voice dictation with LLM post-processing. Hold a hotkey (or tap a bubb
 ## Features
 
 - **Push-to-talk and hands-free** — hold a hotkey to record, or quick-tap for hands-free mode (macOS); tap or long-press the floating bubble (Android)
+- **Broad model catalog** — Apple Speech, Parakeet v2/Ultra, Bark 3.0/3.0 Clean, Qwen3-ASR 0.6B, and Nemotron 3.5 Streaming on macOS; Parakeet v2/v3 and SenseVoice Small on Android
 - **Backtrack correction** — say "actually", "scratch that", or "no wait" to revise what you just said ("coffee at 2 actually 3" → "coffee at 3")
 - **Stutter and false start removal** — repeated words and immediate restarts are cleaned up ("I I think" → "I think")
 - **Voice formatting commands** — "new line", "new paragraph", "comma", "period", etc. are converted to punctuation (macOS)
 - **Numbered list formatting** — dictate items with numbers and they're formatted as a list (macOS)
-- **Speech VAD** — silent captures are discarded before ASR, avoiding hallucinated closing phrases
-- **Live partial text** — Parakeet dictation streams partial text as you speak (macOS)
-- **Performance history** — per-dictation ASR/LLM/total latency and real-time factor, with an aggregate Performance pane (macOS)
+- **Speech VAD and chunking** — Silero VAD gates silence; Android transcribes completed speech segments while recording, then joins them at stop
+- **Live partial text** — Parakeet and Nemotron dictation stream partial text as you speak (macOS)
+- **Performance history and benchmark** — per-dictation latency/RTF, an aggregate Performance pane, and an active-model benchmark on generated speech (macOS)
 - **History export** — Markdown/JSON on macOS, optional Markdown + WAV folder export on Android
 - **Shortcut modes and update checks** — hold/tap-lock or toggle on macOS, plus a GitHub-release update check on both platforms
+- **Fine-tuned cleanup** — the macOS MLX default is a Qwen3.5-0.8B Parakeet transcript-cleanup fine-tune
 - **Filler word removal** — strips um, uh, like, you know, basically, etc. via regex set-match before LLM, and again during LLM cleanup (toggleable)
 - **Custom dictionary** — add names, technical terms, or frequently misheard words; fuzzy matching (Levenshtein + Soundex) auto-corrects ASR errors before LLM cleanup, and dictionary words are injected into the LLM prompt as preferred spellings (macOS)
 - **Context-aware cleanup** — reads the active app, window title, and surrounding text; adapts tone (casual for Slack, formal for Mail, technical for Xcode) (macOS)
@@ -70,8 +72,9 @@ Audio capture -> ASR -> Filler filter -> Dictionary correction -> LLM cleanup ->
 
 | Component | macOS | Android |
 |---|---|---|
-| ASR | Apple SpeechAnalyzer (streaming) | Sherpa-ONNX Parakeet TDT (batch) |
-| LLM | Apple FoundationModels / MLX | LiteRT-LM Qwen3 0.6B |
+| ASR | Apple Speech, Parakeet v2/Ultra, Bark 3.0, Qwen3-ASR 0.6B, Nemotron 3.5 Streaming | Sherpa-ONNX Parakeet v2/v3, SenseVoice Small |
+| VAD | Silero VAD via FluidAudio | Silero VAD via Sherpa-ONNX + energy fallback |
+| LLM | Apple FoundationModels / MLX (Qwen3.5-0.8B cleanup default) | LiteRT-LM Qwen3 0.6B |
 | Trigger | Hotkey (Option hold/release) | Floating bubble (tap/hold) |
 | Text insertion | Clipboard + Cmd+V | AccessibilityService |
 | Context | AXUIElement + NSWorkspace | AccessibilityService |

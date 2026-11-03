@@ -13,6 +13,10 @@ final class Orchestrator {
     private let transcriptionEngine = TranscriptionEngine()
     private let parakeetV2Engine: ParakeetEngine
     private let parakeetUltraEngine: ParakeetEngine
+    private let bark3Engine: ParakeetEngine
+    private let bark3CleanEngine: ParakeetEngine
+    private let qwen3Engine: Qwen3AsrEngine
+    private let nemotronEngine: NemotronStreamingEngine
     private let mlxPostProcessor = MLXPostProcessor()
     private let hotkeyManager = HotkeyManager()
     private let overlayController = RecordingOverlayController()
@@ -32,11 +36,14 @@ final class Orchestrator {
         self.modelContainer = modelContainer
         self.parakeetV2Engine = ParakeetEngine(version: .v2)
         self.parakeetUltraEngine = ParakeetEngine(version: .ultra)
+        self.bark3Engine = ParakeetEngine(version: .bark3)
+        self.bark3CleanEngine = ParakeetEngine(version: .bark3Clean)
+        self.qwen3Engine = Qwen3AsrEngine()
+        self.nemotronEngine = NemotronStreamingEngine()
     }
 
     func initialize() async {
         guard !isInitialized else { return }
-
         // Request microphone permission upfront (triggers system dialog)
         _ = await AVCaptureDevice.requestAccess(for: .audio)
 
@@ -111,6 +118,8 @@ final class Orchestrator {
         }
 
         await startHotkeyWithRetry()
+        checkModelStatus()
+        checkLlmModelStatus()
     }
 
     func updateHotkey(_ choice: HotkeyChoice) {
@@ -190,6 +199,14 @@ final class Orchestrator {
                     try await parakeetV2Engine.ensureModelLoaded()
                 case .parakeetUltra:
                     try await parakeetUltraEngine.ensureModelLoaded()
+                case .bark3:
+                    try await bark3Engine.ensureModelLoaded()
+                case .bark3Clean:
+                    try await bark3CleanEngine.ensureModelLoaded()
+                case .qwen3Asr:
+                    try await qwen3Engine.ensureModelLoaded()
+                case .nemotronStreaming:
+                    try await nemotronEngine.ensureModelLoaded()
                 case .apple:
                     break
                 }
@@ -370,7 +387,7 @@ final class Orchestrator {
 
         // Insert text
         appState.phase = .inserting
-        await TextInserter.insert(finalText, method: appState.pasteMethod)
+        _ = await TextInserter.insert(finalText, method: appState.pasteMethod)
 
         // Record to SwiftData
         let llmRan = llmEnabled && llmAvailable
@@ -418,6 +435,10 @@ final class Orchestrator {
         switch appState.asrBackend {
         case .parakeetV2: await parakeetV2Engine.startSession(onPartial: onPartial)
         case .parakeetUltra: await parakeetUltraEngine.startSession(onPartial: onPartial)
+        case .bark3: await bark3Engine.startSession(onPartial: onPartial)
+        case .bark3Clean: await bark3CleanEngine.startSession(onPartial: onPartial)
+        case .qwen3Asr: await qwen3Engine.startSession(onPartial: onPartial)
+        case .nemotronStreaming: await nemotronEngine.startSession(onPartial: onPartial)
         case .apple: break
         }
     }
@@ -426,6 +447,10 @@ final class Orchestrator {
         switch appState.asrBackend {
         case .parakeetV2: await parakeetV2Engine.cancelSession()
         case .parakeetUltra: await parakeetUltraEngine.cancelSession()
+        case .bark3: await bark3Engine.cancelSession()
+        case .bark3Clean: await bark3CleanEngine.cancelSession()
+        case .qwen3Asr: await qwen3Engine.cancelSession()
+        case .nemotronStreaming: await nemotronEngine.cancelSession()
         case .apple: break
         }
     }
@@ -440,6 +465,18 @@ final class Orchestrator {
         case .parakeetUltra:
             let engine = parakeetUltraEngine
             return { buffer in engine.feedAudio(buffer) }
+        case .bark3:
+            let engine = bark3Engine
+            return { buffer in engine.feedAudio(buffer) }
+        case .bark3Clean:
+            let engine = bark3CleanEngine
+            return { buffer in engine.feedAudio(buffer) }
+        case .qwen3Asr:
+            let engine = qwen3Engine
+            return { buffer in engine.feedAudio(buffer) }
+        case .nemotronStreaming:
+            let engine = nemotronEngine
+            return { buffer in engine.feedAudio(buffer) }
         case .apple:
             return { _ in }
         }
@@ -449,6 +486,10 @@ final class Orchestrator {
         switch appState.asrBackend {
         case .parakeetV2: return parakeetV2Engine.targetFormat
         case .parakeetUltra: return parakeetUltraEngine.targetFormat
+        case .bark3: return bark3Engine.targetFormat
+        case .bark3Clean: return bark3CleanEngine.targetFormat
+        case .qwen3Asr: return qwen3Engine.targetFormat
+        case .nemotronStreaming: return nemotronEngine.targetFormat
         case .apple: return nil
         }
     }
@@ -457,7 +498,158 @@ final class Orchestrator {
         switch appState.asrBackend {
         case .parakeetV2: return try await parakeetV2Engine.finishSession()
         case .parakeetUltra: return try await parakeetUltraEngine.finishSession()
+        case .bark3: return try await bark3Engine.finishSession()
+        case .bark3Clean: return try await bark3CleanEngine.finishSession()
+        case .qwen3Asr: return try await qwen3Engine.finishSession()
+        case .nemotronStreaming: return try await nemotronEngine.finishSession()
         case .apple: return ""
+        }
+    }
+
+    // MARK: - Benchmark
+
+    @MainActor
+    func runBenchmark() async -> ModelBenchmarkResult? {
+        guard let samples = try? BenchmarkAudio.samples() else { return nil }
+        let audioMilliseconds = Double(samples.count) / 16.0
+        let backend = appState.asrBackend.label
+
+        switch appState.asrBackend {
+        case .parakeetV2:
+            return await benchmark(parakeetV2Engine, backend: backend, samples: samples, audioMilliseconds: audioMilliseconds)
+        case .parakeetUltra:
+            return await benchmark(parakeetUltraEngine, backend: backend, samples: samples, audioMilliseconds: audioMilliseconds)
+        case .bark3:
+            return await benchmark(bark3Engine, backend: backend, samples: samples, audioMilliseconds: audioMilliseconds)
+        case .bark3Clean:
+            return await benchmark(bark3CleanEngine, backend: backend, samples: samples, audioMilliseconds: audioMilliseconds)
+        case .qwen3Asr:
+            return await benchmark(qwen3Engine, backend: backend, samples: samples, audioMilliseconds: audioMilliseconds)
+        case .nemotronStreaming:
+            return await benchmark(nemotronEngine, backend: backend, samples: samples, audioMilliseconds: audioMilliseconds)
+        case .apple:
+            return await benchmark(transcriptionEngine, backend: backend, samples: samples, audioMilliseconds: audioMilliseconds)
+        }
+    }
+
+    private func benchmark(
+        _ engine: ParakeetEngine, backend: String, samples: [Float], audioMilliseconds: Double
+    ) async -> ModelBenchmarkResult {
+        let loadStart = CFAbsoluteTimeGetCurrent()
+        do {
+            try await engine.ensureModelLoaded()
+            let loadMs = (CFAbsoluteTimeGetCurrent() - loadStart) * 1000
+            await engine.startSession { _ in }
+            feed(samples) { engine.feedAudio($0) }
+            let inferenceStart = CFAbsoluteTimeGetCurrent()
+            let text = try await engine.finishSession()
+            let inferenceMs = (CFAbsoluteTimeGetCurrent() - inferenceStart) * 1000
+            return ModelBenchmarkResult(
+                backend: backend, loadMilliseconds: loadMs,
+                inferenceMilliseconds: inferenceMs,
+                audioMilliseconds: audioMilliseconds, transcript: text
+            )
+        } catch {
+            return ModelBenchmarkResult(
+                backend: backend, loadMilliseconds: 0, inferenceMilliseconds: 0,
+                audioMilliseconds: audioMilliseconds, transcript: "Failed: \(error.localizedDescription)"
+            )
+        }
+    }
+
+    private func benchmark(
+        _ engine: Qwen3AsrEngine, backend: String, samples: [Float], audioMilliseconds: Double
+    ) async -> ModelBenchmarkResult {
+        let loadStart = CFAbsoluteTimeGetCurrent()
+        do {
+            try await engine.ensureModelLoaded()
+            let loadMs = (CFAbsoluteTimeGetCurrent() - loadStart) * 1000
+            await engine.startSession { _ in }
+            feed(samples) { engine.feedAudio($0) }
+            let inferenceStart = CFAbsoluteTimeGetCurrent()
+            let text = try await engine.finishSession()
+            let inferenceMs = (CFAbsoluteTimeGetCurrent() - inferenceStart) * 1000
+            return ModelBenchmarkResult(
+                backend: backend, loadMilliseconds: loadMs,
+                inferenceMilliseconds: inferenceMs,
+                audioMilliseconds: audioMilliseconds, transcript: text
+            )
+        } catch {
+            return ModelBenchmarkResult(
+                backend: backend, loadMilliseconds: 0, inferenceMilliseconds: 0,
+                audioMilliseconds: audioMilliseconds, transcript: "Failed: \(error.localizedDescription)"
+            )
+        }
+    }
+
+    private func benchmark(
+        _ engine: NemotronStreamingEngine, backend: String, samples: [Float], audioMilliseconds: Double
+    ) async -> ModelBenchmarkResult {
+        let loadStart = CFAbsoluteTimeGetCurrent()
+        do {
+            try await engine.ensureModelLoaded()
+            let loadMs = (CFAbsoluteTimeGetCurrent() - loadStart) * 1000
+            await engine.startSession { _ in }
+            feed(samples) { engine.feedAudio($0) }
+            let inferenceStart = CFAbsoluteTimeGetCurrent()
+            let text = try await engine.finishSession()
+            let inferenceMs = (CFAbsoluteTimeGetCurrent() - inferenceStart) * 1000
+            return ModelBenchmarkResult(
+                backend: backend, loadMilliseconds: loadMs,
+                inferenceMilliseconds: inferenceMs,
+                audioMilliseconds: audioMilliseconds, transcript: text
+            )
+        } catch {
+            return ModelBenchmarkResult(
+                backend: backend, loadMilliseconds: 0, inferenceMilliseconds: 0,
+                audioMilliseconds: audioMilliseconds, transcript: "Failed: \(error.localizedDescription)"
+            )
+        }
+    }
+
+    private func benchmark(
+        _ engine: TranscriptionEngine, backend: String, samples: [Float], audioMilliseconds: Double
+    ) async -> ModelBenchmarkResult {
+        let inferenceStart = CFAbsoluteTimeGetCurrent()
+        do {
+            _ = try await engine.startSession { _ in }
+            feed(samples) { engine.feedAudio($0) }
+            let text = try await engine.finishSession()
+            let inferenceMs = (CFAbsoluteTimeGetCurrent() - inferenceStart) * 1000
+            return ModelBenchmarkResult(
+                backend: backend, loadMilliseconds: 0,
+                inferenceMilliseconds: inferenceMs,
+                audioMilliseconds: audioMilliseconds, transcript: text
+            )
+        } catch {
+            return ModelBenchmarkResult(
+                backend: backend, loadMilliseconds: 0, inferenceMilliseconds: 0,
+                audioMilliseconds: audioMilliseconds, transcript: "Failed: \(error.localizedDescription)"
+            )
+        }
+    }
+
+    private func feed(_ samples: [Float], to receive: (AVAudioPCMBuffer) -> Void) {
+        let format = AVAudioFormat(
+            commonFormat: .pcmFormatFloat32,
+            sampleRate: 16000,
+            channels: 1,
+            interleaved: false
+        )!
+        let chunkSize = 1600
+        var offset = 0
+        while offset < samples.count {
+            let count = min(chunkSize, samples.count - offset)
+            let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(count))!
+            buffer.frameLength = AVAudioFrameCount(count)
+            samples.withUnsafeBufferPointer { source in
+                buffer.floatChannelData![0].update(
+                    from: source.baseAddress!.advanced(by: offset),
+                    count: count
+                )
+            }
+            receive(buffer)
+            offset += count
         }
     }
 
@@ -468,6 +660,13 @@ final class Orchestrator {
         guard backend.needsDownload else { return }
         // Don't overwrite if already downloading
         if case .downloading = appState.modelStatusByBackend[backend] { return }
+        if backend == .qwen3Asr {
+            Task {
+                let ready = await qwen3Engine.isModelReady()
+                appState.modelStatusByBackend[backend] = ready ? .ready : .notDownloaded
+            }
+            return
+        }
         let dir = Self.cacheDirectory(for: backend)
         let exists: Bool
         switch backend {
@@ -475,6 +674,15 @@ final class Orchestrator {
             exists = AsrModels.modelsExist(at: dir, version: .v2)
         case .parakeetUltra:
             exists = AsrModels.modelsExist(at: dir, version: .ultra)
+        case .bark3:
+            exists = AsrModels.modelsExist(at: dir, version: .bark3)
+        case .bark3Clean:
+            exists = AsrModels.modelsExist(at: dir, version: .bark3Clean)
+        case .qwen3Asr:
+            // Handled by the async availability check above.
+            exists = false
+        case .nemotronStreaming:
+            exists = nemotronEngine.isModelDownloaded()
         case .apple:
             exists = true
         }
@@ -509,6 +717,19 @@ final class Orchestrator {
                 try await parakeetV2Engine.ensureModelLoaded()
             case .parakeetUltra:
                 try await parakeetUltraEngine.ensureModelLoaded()
+            case .bark3:
+                try await bark3Engine.ensureModelLoaded()
+            case .bark3Clean:
+                try await bark3CleanEngine.ensureModelLoaded()
+            case .qwen3Asr:
+                let appState = self.appState
+                try await qwen3Engine.ensureModelLoaded { fraction in
+                    Task { @MainActor in
+                        appState.modelStatusByBackend[.qwen3Asr] = .downloading(progress: fraction)
+                    }
+                }
+            case .nemotronStreaming:
+                try await nemotronEngine.ensureModelLoaded()
             case .apple:
                 break
             }
@@ -578,6 +799,10 @@ final class Orchestrator {
         switch backend {
         case .parakeetV2: return AsrModels.defaultCacheDirectory(for: .v2)
         case .parakeetUltra: return AsrModels.defaultCacheDirectory(for: .ultra)
+        case .bark3: return AsrModels.defaultCacheDirectory(for: .bark3)
+        case .bark3Clean: return AsrModels.defaultCacheDirectory(for: .bark3Clean)
+        case .qwen3Asr: return Qwen3AsrEngine.cacheDirectory
+        case .nemotronStreaming: return NemotronStreamingEngine.cacheDirectory
         case .apple: return URL(fileURLWithPath: "/dev/null")
         }
     }
@@ -586,6 +811,10 @@ final class Orchestrator {
         switch backend {
         case .parakeetV2: return 473_000_000
         case .parakeetUltra: return 630_000_000
+        case .bark3: return 420_000_000
+        case .bark3Clean: return 430_000_000
+        case .qwen3Asr: return 945_000_000
+        case .nemotronStreaming: return 1_500_000_000
         case .apple: return 1
         }
     }
@@ -603,11 +832,11 @@ final class Orchestrator {
     }
 
     func checkLlmModelStatus() {
-        let model = appState.mlxModel
-        if case .downloading = appState.mlxModelStatus[model] { return }
-        mlxPostProcessor.switchModel(to: model.modelID)
-        let exists = mlxPostProcessor.modelIsReady()
-        appState.mlxModelStatus[model] = exists ? .ready : .notDownloaded
+        for model in MlxModelChoice.allCases {
+            if case .downloading = appState.mlxModelStatus[model] { continue }
+            let exists = MLXPostProcessor.modelCacheExists(for: model.modelID)
+            appState.mlxModelStatus[model] = exists ? .ready : .notDownloaded
+        }
     }
 
     private var llmDownloadTask: Task<Void, Error>?
@@ -758,6 +987,10 @@ final class Orchestrator {
     private func unloadAllModels() {
         if parakeetV2Engine.isLoaded { parakeetV2Engine.unload() }
         if parakeetUltraEngine.isLoaded { parakeetUltraEngine.unload() }
+        if bark3Engine.isLoaded { bark3Engine.unload() }
+        if bark3CleanEngine.isLoaded { bark3CleanEngine.unload() }
+        qwen3Engine.unload()
+        nemotronEngine.unload()
         if mlxPostProcessor.isLoaded { mlxPostProcessor.unload() }
     }
 }

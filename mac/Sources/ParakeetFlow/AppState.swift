@@ -115,19 +115,46 @@ enum AsrBackend: String, CaseIterable {
     case apple
     case parakeetV2
     case parakeetUltra
+    case bark3
+    case bark3Clean
+    case qwen3Asr
+    case nemotronStreaming
 
     var label: String {
         switch self {
-        case .apple: return "Apple Speech"
-        case .parakeetV2: return "Parakeet TDT v2 (EN)"
-        case .parakeetUltra: return "Parakeet Ultra (Multilingual)"
+        case .apple: return "Apple Speech (Built-in)"
+        case .parakeetV2: return "Parakeet TDT v2 (English)"
+        case .parakeetUltra: return "Parakeet Ultra (25 languages)"
+        case .bark3: return "Bark 3.0 (English)"
+        case .bark3Clean: return "Bark 3.0 Clean (English, filler-free)"
+        case .qwen3Asr: return "Qwen3-ASR 0.6B (30 languages)"
+        case .nemotronStreaming: return "Nemotron 3.5 Streaming (40 languages)"
         }
     }
 
     var needsDownload: Bool {
         switch self {
         case .apple: return false
-        case .parakeetV2, .parakeetUltra: return true
+        case .parakeetV2, .parakeetUltra, .bark3, .bark3Clean, .qwen3Asr, .nemotronStreaming: return true
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .apple:
+            return "Built-in · streaming · zero download"
+        case .parakeetV2:
+            return "English · ~473 MB · batch"
+        case .parakeetUltra:
+            return "25 European languages · ~630 MB · live partials · recommended"
+        case .bark3:
+            return "English · 163 MB download · live · tiny"
+        case .bark3Clean:
+            return "English dictation · filler cleanup · 180 MB download"
+        case .qwen3Asr:
+            return "30 languages + 22 Chinese dialects · ~945 MB · batch"
+        case .nemotronStreaming:
+            return "40 language-locales · true streaming · ~1.5 GB"
         }
     }
 }
@@ -149,12 +176,27 @@ enum LlmBackend: String, CaseIterable {
 }
 
 enum MlxModelChoice: String, CaseIterable {
+    case qwen35_08b_cleanup = "TalkMate/Qwen3.5-0.8B-parakeet-52k-FullFT-MLX-5bit"
     case qwen35_2b = "mlx-community/Qwen3.5-2B-6bit"
     case phi4mini = "mlx-community/Phi-4-mini-instruct-4bit"
     case llama32_3b = "mlx-community/Llama-3.2-3B-Instruct-4bit"
 
+    var detail: String {
+        switch self {
+        case .qwen35_08b_cleanup:
+            return "English transcript cleanup · 518 MB · default"
+        case .qwen35_2b:
+            return "Generic Qwen 3.5 2B · larger, more flexible"
+        case .phi4mini:
+            return "Microsoft Phi-4 Mini · generic cleanup"
+        case .llama32_3b:
+            return "Llama 3.2 3B · generic cleanup"
+        }
+    }
+
     var label: String {
         switch self {
+        case .qwen35_08b_cleanup: return "Qwen 3.5 0.8B Cleanup (English)"
         case .qwen35_2b: return "Qwen 3.5 2B (6-bit)"
         case .phi4mini: return "Phi-4 Mini (4-bit)"
         case .llama32_3b: return "Llama 3.2 3B (4-bit)"
@@ -284,7 +326,7 @@ final class AppState {
             "hotkeyMode": HotkeyMode.hold.rawValue,
             "asrBackend": AsrBackend.apple.rawValue,
             "llmBackend": LlmBackend.apple.rawValue,
-            "mlxModel": MlxModelChoice.qwen35_2b.rawValue,
+            "mlxModel": MlxModelChoice.qwen35_08b_cleanup.rawValue,
         ])
         self.isLLMEnabled = defaults.bool(forKey: "isLLMEnabled")
         self.isFillerRemovalEnabled = defaults.bool(forKey: "isFillerRemovalEnabled")
@@ -300,15 +342,19 @@ final class AppState {
         self.hotkeyChoice = HotkeyChoice(rawValue: defaults.string(forKey: "hotkeyChoice") ?? "") ?? .option
         self.hotkeyMode = HotkeyMode(rawValue: defaults.string(forKey: "hotkeyMode") ?? "") ?? .hold
         let savedAsrBackend = defaults.string(forKey: "asrBackend") ?? ""
-        if savedAsrBackend == "qwen3Asr" || savedAsrBackend == "qwen3AsrInt8" || savedAsrBackend == "parakeet" {
-            // Qwen3 ASR and Parakeet v3 were removed; migrate those users to Ultra.
+        if savedAsrBackend == "qwen3AsrInt8" {
+            // The old Qwen3 Int8 backend was replaced by the 30-language Qwen3-ASR model.
+            self.asrBackend = .qwen3Asr
+            defaults.set(AsrBackend.qwen3Asr.rawValue, forKey: "asrBackend")
+        } else if savedAsrBackend == "parakeet" {
+            // Parakeet v3 was removed; migrate those users to Ultra.
             self.asrBackend = .parakeetUltra
             defaults.set(AsrBackend.parakeetUltra.rawValue, forKey: "asrBackend")
         } else {
             self.asrBackend = AsrBackend(rawValue: savedAsrBackend) ?? .apple
         }
         self.llmBackend = LlmBackend(rawValue: defaults.string(forKey: "llmBackend") ?? "") ?? .apple
-        self.mlxModel = MlxModelChoice(rawValue: defaults.string(forKey: "mlxModel") ?? "") ?? .qwen35_2b
+        self.mlxModel = MlxModelChoice(rawValue: defaults.string(forKey: "mlxModel") ?? "") ?? .qwen35_08b_cleanup
         self.hasCompletedOnboarding = defaults.bool(forKey: "hasCompletedOnboarding")
         FillerWordFilter.updatePatterns(loadedFillerWords)
     }
