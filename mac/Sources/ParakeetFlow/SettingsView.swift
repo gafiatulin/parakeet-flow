@@ -261,6 +261,10 @@ struct GeneralSettingsView: View {
                         }
 
                         HStack {
+                            Button("Refresh Status") {
+                                orchestrator?.checkLlmModelStatus()
+                            }
+                            .font(.caption)
                             Button("Show in Finder") {
                                 orchestrator?.revealLlmModelCache()
                             }

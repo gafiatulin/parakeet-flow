@@ -832,11 +832,11 @@ final class Orchestrator {
     }
 
     func checkLlmModelStatus() {
-        let model = appState.mlxModel
-        if case .downloading = appState.mlxModelStatus[model] { return }
-        mlxPostProcessor.switchModel(to: model.modelID)
-        let exists = mlxPostProcessor.modelIsReady()
-        appState.mlxModelStatus[model] = exists ? .ready : .notDownloaded
+        for model in MlxModelChoice.allCases {
+            if case .downloading = appState.mlxModelStatus[model] { continue }
+            let exists = MLXPostProcessor.modelCacheExists(for: model.modelID)
+            appState.mlxModelStatus[model] = exists ? .ready : .notDownloaded
+        }
     }
 
     private var llmDownloadTask: Task<Void, Error>?
