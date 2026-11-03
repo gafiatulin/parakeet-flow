@@ -44,7 +44,6 @@ final class Orchestrator {
 
     func initialize() async {
         guard !isInitialized else { return }
-
         // Request microphone permission upfront (triggers system dialog)
         _ = await AVCaptureDevice.requestAccess(for: .audio)
 
@@ -119,6 +118,8 @@ final class Orchestrator {
         }
 
         await startHotkeyWithRetry()
+        checkModelStatus()
+        checkLlmModelStatus()
     }
 
     func updateHotkey(_ choice: HotkeyChoice) {

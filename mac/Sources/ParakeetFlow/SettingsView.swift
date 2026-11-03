@@ -157,6 +157,10 @@ struct GeneralSettingsView: View {
 
                 if appState.asrBackend.needsDownload {
                     HStack {
+                        Button("Refresh Status") {
+                            orchestrator?.checkModelStatus()
+                        }
+                        .font(.caption)
                         Button("Show in Finder") {
                             orchestrator?.revealModelCache()
                         }
