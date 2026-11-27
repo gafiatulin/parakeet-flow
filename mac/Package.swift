@@ -7,7 +7,7 @@ let package = Package(
     dependencies: [
         // Pinned for reproducible builds.
         .package(url: "https://github.com/FluidInference/FluidAudio.git", exact: "0.18.2"),
-        .package(url: "https://github.com/ml-explore/mlx-swift-lm.git", exact: "3.32.3"),
+        .package(url: "https://github.com/ml-explore/mlx-swift-lm.git", exact: "3.33.0"),
         .package(url: "https://github.com/huggingface/swift-huggingface.git", exact: "1.0.0"),
         .package(url: "https://github.com/mattt/AnySpeechRecognizer.git", exact: "0.1.0"),
         .package(url: "https://github.com/huggingface/swift-transformers.git", exact: "1.4.0"),
